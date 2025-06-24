@@ -1,0 +1,27 @@
+.homepage {
+    background-color: #f7ffed;
+}
+
+.titles {
+    text-align: center;
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    color: #384b34;
+    padding-bottom: 3rem;
+}
+
+.bookButton {
+    background-color: #6b9065;
+    color: #f7ffed;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.bookButton:hover {
+    background-color: #5a7b56;
+}
