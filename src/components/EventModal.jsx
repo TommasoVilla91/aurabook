@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import style from './EventModal.module.css';
+import dayjs from 'dayjs';
+import { Link } from 'react-router-dom';
 
 // Mappatura delle regole degli slot di disponibilità
 const dailyAvailabilityRules = {
@@ -90,7 +92,7 @@ function EventModal({ onClose, show, selectedDate }) {
     }, [show, selectedDate]);
 
     const handleSlotClick = (slot) => {
-        alert(`Hai selezionato la data ${selectedDate} allo slot ${slot}`);
+        // alert(`Hai selezionato la data ${dayjs(selectedDate).format('DD/MM/YYYY')} allo slot ${slot}`);
         onClose();
     };
 
@@ -98,27 +100,31 @@ function EventModal({ onClose, show, selectedDate }) {
     return show && ReactDOM.createPortal (
         <div className={style.eventModal}>
             <div className={style.modalContent}>
-                <h2>Scegli uno degli orari tra quelli disponibili per il giorno {selectedDate}</h2>
+                <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
+
+                <p>Tutte le visite hanno durata di 1 ora</p>
 
                 { timesToShow.length > 0 ? (
                     <div className={style.timeSlots}>
 
                         {timesToShow.map((slot, i) => (
 
-                            <buton 
+                            <Link
+                                to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`} 
                                 key={i} 
                                 onClick={() => handleSlotClick(slot)}
                                 className={style.timeSlotButton}
                             >
                                 {slot}
-                            </buton>
+                            </Link>
                         ))}
                     </div>
                 ) : (
                     <p>Nessun orario disponibile per questa data.</p>
                 )}
-
-                <button className={style.closeButton} onClick={onClose}>X</button>
+                <div className={style.closeButton}>
+                    <button onClick={onClose}><strong>X</strong></button>
+                </div>
             </div>
         </div>,
         document.body

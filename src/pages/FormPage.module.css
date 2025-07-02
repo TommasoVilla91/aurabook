@@ -1,0 +1,110 @@
+.formPage {
+    background-color: #f7ffed;
+    min-height: calc(100vh - 48px);
+}
+
+.formSection {
+    text-align: center;
+    padding-top: 2rem;
+    color: #384b34;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.formSection form {
+    width: 80%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.formSection input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #b8d890;
+    margin-top: 0.5rem;
+    background-color: #f7ffed;
+    font-size: 1.2rem;
+}
+
+.formTop {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+}
+
+.anagraphicInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 40%;
+    padding: 3rem 0rem;
+    border: 1px solid #5a7b56;
+    border-radius: 10px;
+    background-color: white;
+    color: #384b34;
+}
+
+.anagraphicInfo div {
+    width: 80%;
+}
+
+.bookingInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 40%;
+}
+
+.bookingInfo section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 3rem;
+    border: 1px solid #5a7b56;
+    border-radius: 10px;
+    background-color: white;
+    color: #384b34;
+}
+
+.description {
+    width: 100%;
+    padding: 10px;
+    margin-top: 3rem;
+    color: #384b34;
+}
+
+.description label {
+    display: block;
+    padding-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.description textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #5a7b56;
+    background-color: white;
+    font-size: 1.3rem;
+}
+
+.submitButton {
+    width: 100%;
+    margin-top: 5rem;
+}
+
+.submitButton button {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: #5a7b56;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
