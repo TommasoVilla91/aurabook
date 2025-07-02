@@ -69,3 +69,10 @@
     font-size: 1.8rem;
     cursor: pointer;
 }
+
+.noSlotMessage {
+    color: rgb(39, 88, 39);
+    font-size: 1.2rem;
+    margin: 1.5rem 0 2.5rem 0;
+    text-align: center;
+}

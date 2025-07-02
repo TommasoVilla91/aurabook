@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import style from './EventModal.module.css';
 import dayjs from 'dayjs';
@@ -15,10 +15,11 @@ const dailyAvailabilityRules = {
     5: { start: '08:00', end: '19:30' }, // Venerdì
     // Sabato (6)
     6: { start: '09:00', end: '12:00' },
-    // Domenica (0) - non abbiamo orari
+    // Domenica (0)
     0: null
 };
 
+// Funzione per generare gli slot di tempo disponibili in base alla data selezionata
 const generateTimeSlots = (date) => {
     // Scopri che giorno della settimana è (0 per domenica, 1 per lunedì, ecc.)
     const dayOfWeek = date.getDay();
@@ -73,22 +74,45 @@ const generateTimeSlots = (date) => {
 
 function EventModal({ onClose, show, selectedDate }) {
 
-    const [timesToShow, setTimesToShow] = useState([]);
+    const generatedSlots = useMemo(() => {
 
-    useEffect(() => {
-        // Se il modale è visibile e c'è una data selezionata
-        if(show && selectedDate) {
-            // Converte la stringa della data cliccata in un oggetto Date
-            const date = new Date(selectedDate);
-            // Genera gli slot in base alle regole di cui sopra
-            const slots = generateTimeSlots(date);
-
-            // Imposta gli slot generati nello stato
-            setTimesToShow(slots);
-        } else {
-            // Se il modale non è visibile o non c'è una data selezionata, resetto gli slot
-            setTimesToShow([]); 
+        if(!show || !selectedDate) {
+            setTimesToShow([]);
+            return;
         };
+        // Genero gli slot di tempo disponibili per la data selezionata
+        const slotArray = generateTimeSlots(new Date(selectedDate));
+
+        // Filtro slot in base alla data selezionata
+        const filterdSlots = slotArray.filter(slot => {
+            
+            // prendo il numero dell'ora e dei minuti dello slot
+            const slotHour = parseInt(slot.split(':')[0], 10);
+            const slotMinute = parseInt(slot.split(':')[1], 10);           
+
+            // prendo l'ora e i minuti di oggi
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // data selezionata da comparare
+            const dateToCompare = new Date(selectedDate);
+            dateToCompare.setHours(0, 0, 0, 0);
+
+            // data di oggi da comparare
+            const nowToCompare = new Date();
+            nowToCompare.setHours(0, 0, 0, 0);            
+
+            // Se la data selezionata è uguale a quella di oggi (stringata YYYY-MM-DD)
+            if (dateToCompare.getTime() === nowToCompare.getTime()) {
+                // ritorno solo gli slot che sono dopo l'orario attuale
+                return slotHour > currentHour || (slotHour === currentHour && slotMinute >= currentMinute);
+            } 
+            return true; // Altrimenti, ritorno tutti gli slot
+        });
+        // Imposto gli slot generati
+        return filterdSlots;
+
     }, [show, selectedDate]);
 
     const handleSlotClick = (slot) => {
@@ -100,14 +124,14 @@ function EventModal({ onClose, show, selectedDate }) {
     return show && ReactDOM.createPortal (
         <div className={style.eventModal}>
             <div className={style.modalContent}>
-                <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
 
-                <p>Tutte le visite hanno durata di 1 ora</p>
-
-                { timesToShow.length > 0 ? (
+                {generatedSlots.length > 0 ? (
                     <div className={style.timeSlots}>
 
-                        {timesToShow.map((slot, i) => (
+                        <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
+                        <p>Tutte le visite hanno durata di 1 ora</p>
+
+                        {generatedSlots.map((slot, i) => (
 
                             <Link
                                 to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`} 
@@ -120,8 +144,9 @@ function EventModal({ onClose, show, selectedDate }) {
                         ))}
                     </div>
                 ) : (
-                    <p>Nessun orario disponibile per questa data.</p>
+                    <p className={style.noSlotMessage}><strong>Nessun orario disponibile per questa data.</strong></p>
                 )}
+
                 <div className={style.closeButton}>
                     <button onClick={onClose}><strong>X</strong></button>
                 </div>
