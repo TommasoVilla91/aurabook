@@ -92,6 +92,7 @@ function Calendar({ show }) {
                     </div>
                 )}
             </div>
+            
             <EventModal
                 show={showEventModal}
                 onClose={() => setShowEventModal(false)}
