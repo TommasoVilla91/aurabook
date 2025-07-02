@@ -4,3 +4,23 @@
     padding: 0;
     font-family: 'Inter', sans-serif;
 }
+
+/* Stile per le celle dei giorni cliccabili */
+.fc-daygrid-day {
+  cursor: pointer;
+}
+
+/* Stile che si applica quando il mouse passa sopra la cella */
+.fc-daygrid-day:hover {
+  background-color: #8fc287;
+}
+
+.fc-daygrid-day {
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Stili per il titolo del calendario */
+.fc-toolbar-title {
+  color: #f7ffed;
+  font-size: 2rem;
+}
