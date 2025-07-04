@@ -50,8 +50,14 @@
     color: #384b34;
 }
 
-.anagraphicInfo div {
+.col {
     width: 80%;
+}
+
+.error {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
 }
 
 .bookingInfo {
@@ -142,4 +148,8 @@
 .submitButton button:hover {
     background-color: #435a40;
     color: rgb(207, 207, 207);
+}
+
+.submitButton p {
+    padding-top: 1rem;
 }
