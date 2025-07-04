@@ -1,6 +1,33 @@
+import { Link, useParams } from 'react-router-dom';
 import style from './FormPage.module.css';
+import dayjs from 'dayjs';
+import 'dayjs/locale/it'; // Importa la localizzazione italiana
+import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dati locali
+import { useRef, useState } from 'react';
 
 function FormPage() {
+
+    dayjs.extend(localeData); // Estendi dayjs con il plugin
+    dayjs.locale('it'); // Imposta la lingua globale a italiano
+
+    const { date } = useParams(); // date=2025-07-18&time=11:00
+
+    const dayAndHour = date.replace("date=", "").split("&time="); // ["2025-07-18", "11:00"]
+
+    const selectedDate = dayAndHour[0]; // 2025-07-11
+    const selectedTime = dayAndHour[1]; // 12:00
+    
+    const formattedDate = dayjs(selectedDate).format('D MMMM YYYY'); // Formatta la data in 11 Luglio 2025
+
+    const [name, setName] = useState('');
+    const [surname, setSurname] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const birthRef = useRef(null);
+        
+    const handleSubmit = () => {
+
+    }
 
 
     return (
@@ -38,15 +65,23 @@ function FormPage() {
 
                         <div className={style.bookingInfo}>
                             <section>
-                                <div>
-                                    <label htmlFor="date">Data:</label>
-                                    <input type="date" id="date" name="date" required />
+                                <div className={style.dateSlot}>
+                                    <label htmlFor="date">Data della visita:</label>
+                                    <h3>{formattedDate}</h3>
                                 </div>
 
-                                <div>
-                                    <label htmlFor="time">Orario:</label>
-                                    <input type="time" id="time" name="time" required />
+                                <div className={style.timeSlot}>
+                                    <div>
+                                        <label htmlFor="slot">Orario scelto:</label>
+                                        <h3>{selectedTime}</h3>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="time">Durata visita:</label>
+                                        <h3>1h</h3>
+                                    </div>
                                 </div>
+
+                                <Link to={'/'} className={style.changeDate}>Cambia data</Link>
                             </section>
                         </div>
                     </div>

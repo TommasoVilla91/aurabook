@@ -76,10 +76,6 @@ function EventModal({ onClose, show, selectedDate }) {
 
     const generatedSlots = useMemo(() => {
 
-        if(!show || !selectedDate) {
-            setTimesToShow([]);
-            return;
-        };
         // Genero gli slot di tempo disponibili per la data selezionata
         const slotArray = generateTimeSlots(new Date(selectedDate));
 
@@ -131,17 +127,20 @@ function EventModal({ onClose, show, selectedDate }) {
                         <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
                         <p>Tutte le visite hanno durata di 1 ora</p>
 
-                        {generatedSlots.map((slot, i) => (
+                        <div className={style.slotButtons}>
+                            {generatedSlots.map((slot, i) => (
 
-                            <Link
-                                to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`} 
-                                key={i} 
-                                onClick={() => handleSlotClick(slot)}
-                                className={style.timeSlotButton}
-                            >
-                                {slot}
-                            </Link>
-                        ))}
+                                <Link
+                                    to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`} 
+                                    key={i} 
+                                    onClick={() => handleSlotClick(slot)}
+                                    className={style.timeSlotButton}
+                                >
+                                    {slot}
+                                </Link>
+                            ))}                            
+                        </div>
+
                     </div>
                 ) : (
                     <p className={style.noSlotMessage}><strong>Nessun orario disponibile per questa data.</strong></p>
