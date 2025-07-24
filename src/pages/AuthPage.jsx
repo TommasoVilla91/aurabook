@@ -1,5 +1,4 @@
 import styles from './AuthPage.module.css';
-import AuthCallback from '../components/AuthCallback';
 import { supabase } from '../supabase/supabaseClient';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
