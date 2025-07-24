@@ -7,6 +7,10 @@ function Navbar() {
         {
             path: "/",
             title: "Home"
+        },
+        {
+            path: "/login",
+            title: "Accedi"
         }
     ];
 

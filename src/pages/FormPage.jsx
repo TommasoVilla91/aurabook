@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import style from './FormPage.module.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/it'; // Importa la localizzazione italiana
@@ -6,12 +6,16 @@ import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dat
 import emailjs from '@emailjs/browser'; // Importa la libreria EmailJS
 import PhoneInput from 'react-phone-number-input'; // Importa il componente
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useGlobalContext } from '../context/GlobalContext';
 
 function FormPage() {
 
     dayjs.extend(localeData); // Estendi dayjs con il plugin
     dayjs.locale('it'); // Imposta la lingua globale a italiano
+
+    const { addEvent } = useGlobalContext();
+    const navigate = useNavigate()
 
     const { date } = useParams(); // date=2025-07-18&time=11:00
 
@@ -27,6 +31,7 @@ function FormPage() {
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [emailTouched, setEmailTouched] = useState(false);
+
     const birthRef = useRef(null);
     const descrRef = useRef(null);
 
@@ -72,7 +77,7 @@ function FormPage() {
             booking_date: formattedDate,
             booking_time: selectedTime,
 
-            message: descrRef.current.value 
+            message: descrRef.current.value
         };
 
         const serviceId = "Mimmo91";
@@ -90,6 +95,29 @@ function FormPage() {
                 if (res.status === 200) {
                     console.log('Email inviata con successo!', res);
                     alert('Prenotazione effettuata con successo!');
+
+                    // formatto data
+                    const eventDate = `${selectedDate}T${selectedTime}:00`;
+
+                    // aggiungere evento a calendario
+                    const newEvent = {
+                        id: new Date().getTime(),
+                        title: `DA CONFERMARE: prenotazione ${name} ${surname}`,
+                        start: eventDate,
+                        // fine = 1h dopo
+                        end: new Date(new Date(eventDate).getTime() + 60 * 60 * 1000).toISOString(),
+                        allDay: false,
+                        extendedProps: {
+                            phone: phone,
+                            email: email,
+                            birthdate: birthRef.current.value,
+                            message: descrRef.current.value
+                        },
+                    };
+
+                    addEvent(newEvent);
+                    console.log('Evento aggiunto al Context!');
+
                     // Resetta il modulo dopo l'invio
                     setName('');
                     setSurname('');
@@ -98,6 +126,9 @@ function FormPage() {
                     if (birthRef.current) {
                         birthRef.current.value = '';
                     }
+
+                    navigate("/");
+
                 } else {
                     alert('Errore durante la prenotazione. Riprova più tardi.');
                 }
