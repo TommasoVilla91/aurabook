@@ -27,7 +27,7 @@ const generateTimeSlots = (date) => {
     const availability = dailyAvailabilityRules[dayOfWeek];
 
     // Se non ci sono regole, ritorno array vuoto
-    if (availability === null || availability === undefined) {
+    if (!availability) {
         return [];
     };
 

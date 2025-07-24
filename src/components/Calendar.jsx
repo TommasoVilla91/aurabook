@@ -5,7 +5,8 @@ import interactionPlugin from '@fullcalendar/interaction'; // Fondamentale per r
 import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import itLocale from '@fullcalendar/core/locales/it';
 import EventModal from './EventModal';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useGlobalContext } from '../context/GlobalContext';
 
 function Calendar({ show }) {
 
@@ -44,7 +45,7 @@ function Calendar({ show }) {
         // prendo la data di oggi nello stesso orario della data cliccata
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         if (clickedDate.getDay() === 0) { // getDay() restituisce 0 per Domenica, 1 per Lunedì, ecc.
             alert('Questo giorno non è disponibile per le prenotazioni.');
             return;
@@ -110,7 +111,6 @@ function Calendar({ show }) {
                                 }
                             }}
 
-
                             locale={itLocale} // Imposta la lingua italiana per il calendario
                             selectable={true} // **RENDE LE DATE CLICCABILI E SELEZIONABILI**
                             selectMirror={true} // Mostra un'anteprima visiva della selezione
@@ -129,22 +129,23 @@ function Calendar({ show }) {
 
                             // Qui definisci un oggetto che indica a FullCalendar di caricare eventi da un Google Calendar specifico
                             events={[
+                                // sorgente del Google Calendar
                                 {
                                     googleCalendarId: calendarId,
                                     className: styles.event,
-                                }
+                                },
                             ]}
                             eventsSet={(events) => {
                                 // alert('Eventi caricati:', events);
                                 // Qui puoi elaborare gli eventi per determinare la disponibilità
                             }}
                         />
-                        
+
                         {showMonthDropdown && (
                             <div className={styles.monthDropdown}>
                                 {months.map((month, i) => (
-                                    <div 
-                                        key={i} 
+                                    <div
+                                        key={i}
                                         onClick={() => handleMonthSelect(i)}
                                         className={styles.monthOption}
                                     >
