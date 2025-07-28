@@ -3,8 +3,9 @@ import { createContext, useCallback, useContext, useState } from "react";
 const GlobalContext = createContext();
 
 function GlobalProvider({ children }) {
-
+    
     const [events, setEvents] = useState([]);
+
 
     // aggiunge nuovo evento
     const addEvent = useCallback((newEvent) => {
