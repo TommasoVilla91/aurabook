@@ -5,7 +5,7 @@ import FormPage from "./pages/FormPage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import AuthCallback from "./components/AuthCallback.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
-import { supabase } from "./supabase/supabaseClient.js";
+import { supabase } from "../supabase/supabaseClient.js";
 import { GlobalProvider } from "./context/GlobalContext.jsx";
 import { useEffect, useState } from "react";
 

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "deno.unstable"],
+    "strict": true
+  },
+  "imports": {
+    "dayjs": "npm:dayjs@1.11.13",
+    "dayjs/plugin/isSameOrBefore": "npm:dayjs@1.11.13/plugin/isSameOrBefore",
+    "dayjs/plugin/isSameOrAfter": "npm:dayjs@1.11.13/plugin/isSameOrAfter"
+  }
+}

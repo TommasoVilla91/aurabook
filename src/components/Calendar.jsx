@@ -6,7 +6,6 @@ import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import itLocale from '@fullcalendar/core/locales/it';
 import EventModal from './EventModal';
 import { useEffect, useRef, useState } from 'react';
-import { useGlobalContext } from '../context/GlobalContext';
 
 function Calendar({ show }) {
 
@@ -25,12 +24,6 @@ function Calendar({ show }) {
         // Per esempio: selectInfo.startStr è la data di inizio selezionata (come stringa)
         // selectInfo.endStr è la data di fine selezionata (come stringa)
         // selectInfo.allDay è true se è una selezione di intera giornata
-
-        // alert('Hai selezionato la data: ' + selectInfo.allDay);
-
-        // Qui puoi implementare la logica per aprire un modale di prenotazione,
-        // o aggiornare uno stato con la data selezionata.
-        // Esempio: setSelectedBookingDate(selectInfo.startStr);
 
         // Se vuoi deselezionare l'intervallo dopo l'azione
         selectInfo.view.calendar.unselect();
