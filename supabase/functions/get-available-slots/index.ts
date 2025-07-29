@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { google } from "npm:googleapis@105.0.0"; // googleapis può rimanere npm:
 
 // =====================================================================
-// 1. Regole di Disponibilità del Massoterapista
+// Regole di Disponibilità del Massoterapista
 // =====================================================================
 const dailyAvailabilityRules = {
   // Lunedì (1)
@@ -19,50 +19,96 @@ const dailyAvailabilityRules = {
 };
 
 // =====================================================================
-// 2. Funzione per generare gli slot di tempo disponibili (usando Date native)
+// Funzione per ottenere l'offset UTC dell'Italia data una stringa di una data
 // =====================================================================
+
+const getItalianUTCOffsetHours = (dateString: string): number => {
+  // oggetto Date per un momento specifico (es. mezzogiorno) in UTC
+  // permette di determinare l'offset corretto per quella data, tenendo conto dell'ora legale
+  const testDate = new Date(`${dateString}T12:00:00Z`);
+
+  const italianTimezone = 'Europe/Rome';
+
+  // Intl.DateTimeFormatOptions serve a determinare la zona del fuso d'interesse
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: italianTimezone, // imposta il fuso italiano
+    timeZoneName: 'shortOffset', // nome del fuso orario con l'offset "GMT+1", "GMT+2"
+  };
+
+  const formatter = new Intl.DateTimeFormat('en-US', options); // formattazione data internazionale
+
+  // formatToParts restituisce un array di parti della data formattata (anno, mese, giorno, ora, fuso orario, ecc.)
+  const parts = formatter.formatToParts(testDate); // [..., { type: 'timeZoneName', value: 'GMT+2' }, ...]
+
+  // trovare la parte relativa al nome del fuso orario
+  const offsetPart = parts.find(p => p.type === 'timeZoneName'); // output = [{ type: 'timeZoneName', value: 'GMT+2' }]
+
+  if (offsetPart) {
+    // match serve per estrarre il numero dopo "GMT"
+    const offsetMatch = offsetPart.value.match(/GMT([+-]\d+)/); // output = ['GMT', '+1'] 
+    if (offsetMatch && offsetMatch[1]) {
+      return parseInt(offsetMatch[1], 10); // Restituisce 1 o 2
+    }
+  }
+  return 0;
+};
+
+// =====================================================================
+// Funzione per generare gli slot di tempo disponibili
+// =====================================================================
+
 const generateBaseTimeSlots = (date: Date): string[] => {
   // getDay() restituisce 0 per domenica, 1 per lunedì, ecc.
-  const dayOfWeek = date.getDay();
+  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay(); // getUTCDay perché la data è in UTC
   const availability = dailyAvailabilityRules[dayOfWeek];
 
   if (!availability) {
     return [];
   }
 
+  // offset dinamico dell'Italia per la data selezionata
+  const italianOffsetHours = getItalianUTCOffsetHours(date); // output = o 2 o 1
+
   const availableSlots: string[] = [];
-  const [startHour, startMinute] = availability.start.split(':').map(Number);
+  const [startHour, startMinute] = availability.start.split(':').map(Number); // .map converte in numero
   const [endHour, endMinute] = availability.end.split(':').map(Number);
 
-  // Crea un oggetto Date per l'inizio corrente dello slot
-  let currentTime = new Date(date); // Copia la data per evitare modifiche all'originale
-  currentTime.setHours(startHour, startMinute, 0, 0); // Imposta ore e minuti, resetta secondi e millisecondi
+  const [year, month, day] = date.split('-').map(Number); // output = [2025, 10, 15]
 
-  // Crea un oggetto Date per la fine della disponibilità
-  const endTime = new Date(date); // Copia la data
-  endTime.setHours(endHour, endMinute, 0, 0); // Imposta ore e minuti, resetta secondi e millisecondi
+  // Converti gli orari locali italiani in orari UTC equivalenti
+  let startHourUTC = startHour - italianOffsetHours; // 11 - 2 || 11 - 1
+  let endHourUTC = endHour - italianOffsetHours;
 
-  const slotIntervalMinutes = 60; // Assumendo slot di 1 ora
+  // Crea oggetti Date in UTC per l'inizio e la fine corrente dello slot
+  let currentTime = new Date(Date.UTC(year, month - 1, day, startHourUTC, startMinute, 0)); // output = 2025-10-15T11:30:00.000Z
+  const endTime = new Date(Date.UTC(year, month - 1, day, endHourUTC, endMinute, 0));
 
-  // Confronta i timestamp (millisecondi dall'epoca)
+  const slotIntervalMinutes = 60; // slot di 1 ora
+
+  // Confronta i timestamp (millisecondi dall'epoca) e formatta l'ora nel formato HH:mm
   while (currentTime.getTime() < endTime.getTime()) {
-    // Formatta l'ora nel formato HH:mm
-    const hours = currentTime.getHours().toString().padStart(2, '0');
-    const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+    const hours = currentTime.getUTCHours().toString().padStart(2, '0'); // output = '11'
+    const minutes = currentTime.getUTCMinutes().toString().padStart(2, '0'); // output = '30'
+
+    // Aggiunge la stringa dello slot
     availableSlots.push(`${hours}:${minutes}`);
 
-    // Avanza all'ora successiva
-    currentTime.setMinutes(currentTime.getMinutes() + slotIntervalMinutes);
+    // prende il tempo attuale, imposta i minuti prendendo i minuti attuali e aggiungendo 60 minuti
+    // in modo da creare lo slot successivo
+    currentTime.setUTCMinutes(currentTime.getUTCMinutes() + slotIntervalMinutes);
   }
 
-  return availableSlots;
+  return availableSlots; // output = ['08:00', '09:00', ...]
 };
 
+
 // =====================================================================
-// 3. Funzione per filtrare gli slot passati (già quasi nativa)
+// Funzione per filtrare gli slot passati e ottenere solo quelli futuri
 // =====================================================================
+
 const filterPastSlots = (slots: string[], dateString: string): string[] => {
-  const now = new Date();
+  const now = new Date(); // è gia in UTC
+
   // Ottieni la data di oggi nel formato YYYY-MM-DD
   const todayString = now.toISOString().split('T')[0];
 
@@ -73,10 +119,16 @@ const filterPastSlots = (slots: string[], dateString: string): string[] => {
 
   // Filtra gli slot che sono già passati
   return slots.filter(slotTime => {
-    const slotDateTime = new Date(`${dateString}T${slotTime}:00`);
+    const slotDateTime = new Date(`${dateString}T${slotTime}:00Z`);
+    // confronta l'ora attuale con l'ora degli slot e ritorna solo gli slot futuri
     return slotDateTime.getTime() > now.getTime();
   });
 };
+
+
+// =====================================================================
+// Logica Principale della Edge Function
+// =====================================================================
 
 // definizione degli headers CORS, permettono di accettare le richieste da frontend
 const corsHeaders = {
@@ -86,129 +138,104 @@ const corsHeaders = {
   'Content-Type': 'application/json', // Aggiungi anche questo per le risposte JSON
 };
 
-
-// =====================================================================
-// 4. Logica Principale della Edge Function
-// =====================================================================
 serve(async (req) => {
   console.log("Edge Function: Richiesta ricevuta.");
   console.log(`Edge Function: Metodo HTTP: ${req.method}`);
 
-  // === INIZIO: GESTIONE RICHIESTE OPTIONS (PREFLIGHT CORS) ===
   if (req.method === 'OPTIONS') {
+    // new Response è un oggetto JS che permette di creare una risposta HTTP 
     return new Response('ok', {
       headers: corsHeaders,
     });
   }
-  // === FINE: GESTIONE RICHIESTE OPTIONS ===
-
 
   // Controlla che la richiesta reale sia di tipo POST
   if (req.method !== 'POST') {
     console.error("Edge Function: Metodo non consentito:", req.method);
+
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       status: 405,
       headers: corsHeaders,
     });
   }
 
-  let requestData;
+  // analizza il corpo della richiesta
+  let requestData; // oggetto che conterrà la data selezionata dal frontend
   try {
-    requestData = await req.json();
+    requestData = await req.json(); // è in formato JSON, quindi bisogna parsere il corpo
     console.log("Edge Function: Dati della richiesta parsati:", requestData);
+
   } catch (e) {
     console.error("Edge Function: Errore nel parsing del JSON della richiesta:", e);
+
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
       status: 400,
       headers: corsHeaders,
     });
   }
 
-  const { date: dateString } = requestData; // dateString è nel formato 'YYYY-MM-DD'
+  // dateString è nel formato 'YYYY-MM-DD'
+  const { date: dateString } = requestData; // output = 2025-10-15
 
   if (!dateString) {
     console.error("Edge Function: Parametro 'date' mancante nella richiesta.");
+
     return new Response(JSON.stringify({ error: 'Missing date parameter' }), {
       status: 400,
       headers: corsHeaders,
     });
   }
 
-  // Crea un oggetto Date nativo dalla stringa della data selezionata
-  // Importante: per evitare problemi di fuso orario, crea la data in UTC o specifica il fuso orario
-  // Per semplicità e coerenza con l'input YYYY-MM-DD, creiamo una data locale a mezzanotte
-  const selectedDate = new Date(`${dateString}T00:00:00`);
-
-  let availableSlots = generateBaseTimeSlots(selectedDate);
+  let availableSlots = generateBaseTimeSlots(dateString); // genera slot in UTC
   console.log("Edge Function: Slot base generati:", availableSlots);
 
-  availableSlots = filterPastSlots(availableSlots, dateString);
+  availableSlots = filterPastSlots(availableSlots, dateString); // filtra slot passati
   console.log("Edge Function: Slot dopo filtro 'passato':", availableSlots);
 
   // =====================================================================
-  // 5. Autenticazione con Google Calendar e Recupero Eventi
+  // Autenticazione con Google Calendar e Recupero Eventi
   // =====================================================================
+
+  // Controlla se le credenziali di Google sono configuarte bene
   try {
     const credentialsString = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS');
     if (!credentialsString) {
       throw new Error('Secret GOOGLE_SERVICE_ACCOUNT_CREDENTIALS non trovato.');
     }
 
-    // --- INIZIO: LOG DI DEBUG CHIAVE PRIVATA (DA RIMUOVERE IN PRODUZIONE) ---
-    console.log("Edge Function: Secret stringa recuperata (parziale):", credentialsString.substring(0, 50) + "..." + credentialsString.substring(credentialsString.length - 50));
-    // --- FINE: LOG DI DEBUG ---
-
+    // Parsare le credenziali
     const credentials = JSON.parse(credentialsString);
-
-    // --- INIZIO: LOG DI DEBUG CHIAVE PRIVATA (DA RIMUOVERE IN PRODUZIONE) ---
-    console.log("Edge Function: Credenziali parsate (oggetto):", credentials);
-    console.log("Edge Function: private_key presente?", !!credentials.private_key);
-    console.log("Edge Function: client_email presente?", !!credentials.client_email);
-    console.log("Edge Function: private_key RAW (primi 100 char):", String(credentials.private_key).substring(0, 100));
-    console.log("Edge Function: private_key RAW (ultimi 100 char):", String(credentials.private_key).substring(String(credentials.private_key).length - 100));
-    // --- FINE: LOG DI DEBUG ---
-
+    // e controllare che i campi necessare siano presenti
     if (!credentials || !credentials.private_key || !credentials.client_email) {
       throw new Error('Credenziali Google Service Account non configurate correttamente (campi mancanti).');
     }
-
-    // Questo .replace() dovrebbe funzionare correttamente se il problema era lì
+    // sistemare i caratteri della chiave privata 
     const privateKeyWithCorrectNewlines = (credentials.private_key as string).replace(/\\n/g, '\n');
 
-    // --- INIZIO: LOG DI DEBUG CHIAVE PRIVATA (DA RIMUOVERE IN PRODUZIONE) ---
-    console.log("Edge Function: private_key AFTER REPLACE (primi 100 char):", privateKeyWithCorrectNewlines.substring(0, 100));
-    console.log("Edge Function: private_key AFTER REPLACE (ultimi 100 char):", privateKeyWithCorrectNewlines.substring(privateKeyWithCorrectNewlines.length - 100));
-    // --- FINE: LOG DI DEBUG ---
-
-
-    const jwtClient = new google.auth.JWT(
-      credentials.client_email,
+    // jwtClient è un client per l'autenticazione Google usanto un account di servizio 
+    const jwtClient = new google.auth.JWT( // google.auth.JWT permette l'autenticazione
+      credentials.client_email, // email del client
       null,
-      privateKeyWithCorrectNewlines, // Usa la chiave con i caratteri di nuova riga corretti
-      ['https://www.googleapis.com/auth/calendar.events.readonly'] // Permesso di sola lettura degli eventi
+      privateKeyWithCorrectNewlines, // chiave privata del client sistemata
+      ['https://www.googleapis.com/auth/calendar.events.readonly'] // permesso di sola lettura degli eventi
     );
 
-    await jwtClient.authorize(); // Questa riga è quella che generava l'errore "No key or keyFile set"
-    console.log("Edge Function: JWT Client autorizzato con successo."); // Se vedi questo, il problema è risolto
+    await jwtClient.authorize(); // Autentica il client JWT
+    console.log("Edge Function: JWT Client autorizzato con successo.");
 
+    // google.calendar è un modulo che permette di interagire con l'API di Google Calendar
     const calendar = google.calendar({ version: 'v3', auth: jwtClient });
 
-    // Definisci l'intervallo di tempo per la query (l'intera giornata selezionata)
-    // Usa Date native e toISOString() per il formato richiesto da Google Calendar
-    const startOfDay = new Date(dateString);
-    startOfDay.setHours(0, 0, 0, 0); // Inizio del giorno selezionato
-    const timeMin = startOfDay.toISOString();
+    // Definizione intervallo di tempo per la query (l'intera giornata selezionata)    
+    const startOfDay = new Date(`${dateString}T00:00:00Z`);
+    const timeMin = startOfDay.toISOString(); // toISOString() per il formato richiesto da Google Calendar
 
-    const endOfDay = new Date(dateString);
-    endOfDay.setHours(23, 59, 59, 999); // Fine del giorno selezionato
+    const endOfDay = new Date(`${dateString}T23:59:59.999Z`);
     const timeMax = endOfDay.toISOString();
 
-    // Sostituisci 'YOUR_MASSOTERAPISTA_CALENDAR_ID' con l'ID del calendario del massoterapista.
-    // Solitamente è l'indirizzo email del calendario.
-    const calendarId = 'tommasovilla91@gmail.com'; // <-- DA MODIFICARE!
+    const calendarId = 'tommasovilla91@gmail.com';
 
-    console.log(`Edge Function: Richiesta eventi Google Calendar per ${dateString} (da ${timeMin} a ${timeMax})`);
-
+    // calendar.events.list è il metodo per recuperare gli eventi dal calendario
     const calendarResponse = await calendar.events.list({
       calendarId: calendarId,
       timeMin: timeMin,
@@ -218,23 +245,31 @@ serve(async (req) => {
       showDeleted: false, // Non mostrare eventi cancellati
     });
 
+    // calendarResponse.data.items contiene tutti gli eventi trovati
     const events = calendarResponse.data.items || [];
     console.log("Edge Function: Eventi Google Calendar trovati:", events.map(e => ({ summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date })));
 
+
+
     // =====================================================================
-    // 6. Filtrare gli slot in base agli impegni del Google Calendar
+    // Filtrare gli slot in base agli impegni del Google Calendar ed ottenere gli slot finali disponibili
     // =====================================================================
+
     const finalAvailableSlots: string[] = availableSlots.filter(slotTime => {
+
       // Crea oggetti Date per l'inizio e la fine dello slot
-      const slotStart = new Date(`${dateString}T${slotTime}:00`);
+      const slotStart = new Date(`${dateString}T${slotTime}:00Z`);
       const slotEnd = new Date(slotStart.getTime() + (60 * 60 * 1000)); // Aggiungi 60 minuti (in millisecondi)
 
+      // ciclo eventi e controllo se questo slot si sovrappone a qualsiasi altro evento del calendario
       const isOverlapping = events.some(event => {
-        // Gli eventi dal calendario sono già oggetti Date o stringhe ISO, quindi li convertiamo
-        const eventStartDate = new Date(event.start?.dateTime || event.start?.date || '');
-        const eventEndDate = new Date(event.end?.dateTime || event.end?.date || '');
+        // gli eventi di Google Calendar possono avere un orario di inizio/fine completo oppure solo una data per gli eventi "tutto il giorno"
+        // se l'evento ha un orario di inizio/fine, lo trasformo con Date
+        // altrimenti lo trasformo in un oggetto Date che rappresenta l'inizio/fine di quel giorno
+        const eventStartDate = event.start?.dateTime ? new Date(event.start.dateTime) : new Date(`${event.start?.date}T00:00:00Z`); // output = 2025-10-15T08:00:00.000Z
+        const eventEndDate = event.end?.dateTime ? new Date(event.end.dateTime) : new Date(`${event.end?.date}T00:00:00Z`);
 
-        // Controllo sovrapposizione usando getTime()
+        // Controllo se lo slot si sovrappone ad un evento esistente nel Goggle Calendar 
         return (eventStartDate.getTime() < slotEnd.getTime() && eventEndDate.getTime() > slotStart.getTime());
       });
 
@@ -243,19 +278,53 @@ serve(async (req) => {
 
     console.log("Edge Function: Slot finali disponibili dopo filtro Google Calendar:", finalAvailableSlots);
 
+
+
     // =====================================================================
-    // 7. Restituire l'array finale degli slot disponibili
+    // Convertire gli slot finali da UTC a orari locali italiani per il frontend
     // =====================================================================
+
+    // ottengo offset dinamico itlaiano (2 o 1)
+    const italianOffsetHours = getItalianUTCOffsetHours(dateString);
+
+    // ciclo array slot disponibili e ritorno array di stringhe con orari HH:mm
+    const finalAvailableSlotsItalianTime: string[] = finalAvailableSlots.map(utcSlotTime => {
+      const [hourUTC, minuteUTC] = utcSlotTime.split(':').map(Number);
+
+      // Convertire l'ora UTC in ora locale italiana
+      const hourLocal = hourUTC + italianOffsetHours;
+
+      // Formattare l'ora e i minuti per la visualizzazione
+      const formattedHour = hourLocal.toString().padStart(2, '0');
+      const formattedMinute = minuteUTC.toString().padStart(2, '0');
+
+      return `${formattedHour}:${formattedMinute}`; // output = '13:30' 
+    });
+
+
+
+    // =====================================================================
+    // Restituire l'array finale degli slot disponibili
+    // =====================================================================
+
     return new Response(
-      JSON.stringify({ slots: finalAvailableSlots }),
+      JSON.stringify({ slots: finalAvailableSlotsItalianTime }),
       { headers: corsHeaders },
     );
 
-  } catch (error: any) { // Aggiunto ': any' per tipizzare l'errore
-    console.error("Edge Function: Errore durante l'elaborazione del calendario:", error.message || error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to retrieve available slots', details: error.message || 'Unknown error' }),
-      { status: 500, headers: corsHeaders },
-    );
-  }
+  } catch (error) {
+
+    if (error instanceof Error) {
+      console.error("Edge Function: Errore durante l'elaborazione del calendario:", error.message || error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to retrieve available slots', details: error.message || 'Unknown error' }),
+        { status: 500, headers: corsHeaders },
+      );
+
+    } else  {
+      console.error(error);
+    };
+  };
 });
+
+// supabase functions deploy get-available-slots
