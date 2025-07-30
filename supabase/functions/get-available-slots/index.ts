@@ -18,6 +18,8 @@ const dailyAvailabilityRules = {
   0: null // Nessuna disponibilità
 };
 
+
+
 // =====================================================================
 // Funzione per ottenere l'offset UTC dell'Italia data una stringa di una data
 // =====================================================================
@@ -52,6 +54,8 @@ const getItalianUTCOffsetHours = (dateString: string): number => {
   }
   return 0;
 };
+
+
 
 // =====================================================================
 // Funzione per generare gli slot di tempo disponibili
@@ -102,6 +106,7 @@ const generateBaseTimeSlots = (date: Date): string[] => {
 };
 
 
+
 // =====================================================================
 // Funzione per filtrare gli slot passati e ottenere solo quelli futuri
 // =====================================================================
@@ -124,6 +129,8 @@ const filterPastSlots = (slots: string[], dateString: string): string[] => {
     return slotDateTime.getTime() > now.getTime();
   });
 };
+
+
 
 
 // =====================================================================
@@ -191,6 +198,8 @@ serve(async (req) => {
 
   availableSlots = filterPastSlots(availableSlots, dateString); // filtra slot passati
   console.log("Edge Function: Slot dopo filtro 'passato':", availableSlots);
+
+
 
   // =====================================================================
   // Autenticazione con Google Calendar e Recupero Eventi

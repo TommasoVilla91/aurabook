@@ -6,15 +6,13 @@ import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dat
 import emailjs from '@emailjs/browser'; // Importa la libreria EmailJS
 import PhoneInput from 'react-phone-number-input'; // Importa il componente
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { useGlobalContext } from '../context/GlobalContext';
+import { useMemo, useRef, useState } from 'react';
+import { supabase } from '../../supabase/supabaseClient';
 
 function FormPage() {
 
     dayjs.extend(localeData); // Estendi dayjs con il plugin
     dayjs.locale('it'); // Imposta la lingua globale a italiano
-
-    const { addEvent } = useGlobalContext();
     const navigate = useNavigate()
 
     const { date } = useParams(); // date=2025-07-18&time=11:00
@@ -49,7 +47,7 @@ function FormPage() {
 
         if (email.trim() === '') {
             emailValidation.errorMessage = 'L\'email è obbligatoria.';
-        } else if (!emailRegex.test(email.trim())) { // Usa la regex per una validazione completa del formato
+        } else if (!emailRegex.test(email.trim())) { // regex per una validazione completa del formato
             emailValidation.errorMessage = 'Inserisci un formato email valido.';
         } else {
             emailValidation.isValid = true;
@@ -96,42 +94,49 @@ function FormPage() {
                     console.log('Email inviata con successo!', res);
                     alert('Prenotazione effettuata con successo!');
 
-                    // formatto data
-                    const eventDate = `${selectedDate}T${selectedTime}:00`;
-
-                    // aggiungere evento a calendario
-                    const newEvent = {
-                        id: new Date().getTime(),
-                        title: `DA CONFERMARE: prenotazione ${name} ${surname}`,
-                        start: eventDate,
-                        // fine = 1h dopo
-                        end: new Date(new Date(eventDate).getTime() + 60 * 60 * 1000).toISOString(),
-                        allDay: false,
-                        extendedProps: {
+                    const { data, error: functionError } = await supabase.functions.invoke('create-booking-event', {
+                        body: {
+                            name: name,
+                            surname: surname,
                             phone: phone,
                             email: email,
                             birthdate: birthRef.current.value,
+                            booking_date: selectedDate,
+                            booking_time: selectedTime,
                             message: descrRef.current.value
                         },
+                        method: 'POST',
+                    });
+
+                    if (functionError) {
+                        console.error('Errore nelle invocazione della Edge Function:', functionError);
+                        alert('Errore durante la creazione della prenotazione. Riprova più tardi.');
+                        return;
                     };
 
-                    addEvent(newEvent);
-                    console.log('Evento aggiunto al Context!');
+                    if (data && data.success) {
+                        alert('Prenotazione effettuata con successo! Riceverai una mail di conferma.');
 
-                    // Resetta il modulo dopo l'invio
-                    setName('');
-                    setSurname('');
-                    setPhone('');
-                    setEmail('');
-                    if (birthRef.current) {
-                        birthRef.current.value = '';
-                    }
+                        // Resetta il modulo dopo l'invio
+                        setName('');
+                        setSurname('');
+                        setPhone('');
+                        setEmail('');
+                        if (birthRef.current) {
+                            birthRef.current.value = '';
+                        };
+                        if (descrRef.current) {
+                            descrRef.current.value = '';
+                        };
 
-                    navigate("/");
+                        navigate("/");
+                    };
 
                 } else {
+                    console.error('Risposta inaspettata dalla Edge Function:', data);
                     alert('Errore durante la prenotazione. Riprova più tardi.');
                 }
+
             } catch (error) {
                 console.error('Errore durante l\'invio della prenotazione:', error);
                 alert('Si è verificato un errore durante la conferma della prenotazione. Riprova più tardi.');

@@ -8,11 +8,9 @@ import { supabase } from '../../supabase/supabaseClient';
 function EventModal({ onClose, show, selectedDate }) {
 
     // Stato per gli slot disponibili recuperati dalla Edge Function
-    const [slots, setSlots] = useState([]); // Il tuo stato originale
-    // Stato per indicare se i dati sono in caricamento
+    const [slots, setSlots] = useState([]);
     const [loading, setLoading] = useState(true);
-    // Stato per gestire eventuali errori durante il recupero dei dati
-    const [error, setError] = useState(null); // Il tuo stato originale
+    const [error, setError] = useState(null);
 
 
     // invocare la Edge Function quando il modale si apre (o la data cambia)
