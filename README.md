@@ -124,7 +124,15 @@ Questa parte si occupa di chiamare la Edge Function e aggiornare la UI.
 
 * * Testa a fondo la funzionalità con diversi scenari: slot occupati, slot disponibili, giorni senza appuntamenti, ecc.
 
+## Nuova Edge Function (create-booking-event):
 
+* Riceverà tutti i dati del form dal frontend.
+
+* Utilizzerà le credenziali del Service Account Google per creare un nuovo evento nel Google Calendar del massoterapista.
+
+* Utilizzerà un'altra API (o lo stesso Service Account Google, se configurato per Gmail API) per inviare un'email di conferma al paziente.
+
+* Restituirà una risposta di successo o fallimento al frontend.
 
 # FullCalendar 
 

@@ -16,6 +16,7 @@
     "@fullcalendar/interaction": "^6.1.17",
     "@fullcalendar/react": "^6.1.17",
     "@fullcalendar/timegrid": "^6.1.17",
+    "@sendgrid/mail": "^8.1.5",
     "@supabase/supabase-js": "^2.51.0",
     "clndr": "^1.5.1",
     "dayjs": "^1.11.13",
