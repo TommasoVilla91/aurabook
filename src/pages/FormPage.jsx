@@ -1,15 +1,28 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../../supabase/supabaseClient';
 import style from './FormPage.module.css';
 import dayjs from 'dayjs';
-import 'dayjs/locale/it'; // Importa la localizzazione italiana
 import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dati locali
 import emailjs from '@emailjs/browser'; // Importa la libreria EmailJS
 import PhoneInput from 'react-phone-number-input'; // Importa il componente
+import 'dayjs/locale/it'; // Importa la localizzazione italiana
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
-import { useMemo, useRef, useState } from 'react';
-import { supabase } from '../../supabase/supabaseClient';
+
+const getUserInfo = () => {
+    try {
+        const userInfo = localStorage.getItem('userInfo');
+        return userInfo ? JSON.parse(userInfo) : {};
+
+    } catch (err) {
+        console.error('Errore nel recuper dei dati dal localStorage:', err);
+        return {};
+    };
+}
 
 function FormPage() {
+
+    const userInfo = getUserInfo();
 
     dayjs.extend(localeData); // Estendi dayjs con il plugin
     dayjs.locale('it'); // Imposta la lingua globale a italiano
@@ -24,14 +37,44 @@ function FormPage() {
 
     const formattedDate = dayjs(selectedDate).format('D MMMM YYYY'); // Formatta la data in 11 Luglio 2025
 
-    const [name, setName] = useState('');
-    const [surname, setSurname] = useState('');
-    const [phone, setPhone] = useState('');
-    const [email, setEmail] = useState('');
+    const [name, setName] = useState(userInfo.name || '');
+    const [surname, setSurname] = useState(userInfo.surname || '');
+    const [phone, setPhone] = useState(userInfo.phone || '');
+    const [email, setEmail] = useState(userInfo.email || '');
     const [emailTouched, setEmailTouched] = useState(false);
-
     const birthRef = useRef(null);
     const descrRef = useRef(null);
+
+    useEffect(() => {
+
+        if (birthRef.current && userInfo.birthdate) {
+            birthRef.current.value = userInfo.birthdate;
+        };
+
+        if (descrRef.current && userInfo.description) {
+            descrRef.current.value = userInfo.description;
+        };
+    }, [userInfo]);
+
+    useEffect(() => {
+        const userInfoObj = {
+            name,
+            surname,
+            phone,
+            email,
+            birthdate: birthRef.current ? birthRef.current.value : '',
+            description: descrRef.current ? descrRef.current.value : '',
+            booking_date: selectedDate,
+            booking_time: selectedTime
+        };
+
+        try {
+            localStorage.setItem('userInfo', JSON.stringify(userInfoObj));
+        } catch (err) {
+            console.error('Errore nel salvataggio dei dati nel localStorage:', err);
+        }
+    }, [name, surname, phone, email, selectedDate, selectedTime, birthRef.current?.value, descrRef.current?.value]);
+
 
     const symbols = "!@#$%^&*()-_=+[]{}|;:'\\,.<>?/`~";
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -87,6 +130,7 @@ function FormPage() {
             return;
 
         } else {
+
             try {
                 // chiamata alla libreria emailjs per inviare l'email con i dati del modulo
                 const res = await emailjs.send(serviceId, templateId, templateParams, publicKey);
