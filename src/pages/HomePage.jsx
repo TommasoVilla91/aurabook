@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Calendar from '../components/Calendar';
 import styles from './HomePage.module.css';
 
@@ -9,22 +9,26 @@ function HomePagae() {
     return (
         <div className={styles.homePage}>
             <section className={styles.titles}>
+
                 <h1>Benvenuto!</h1>
                 <h4>Qui potrai prenotare la tua visita</h4>
                 <p>Premi il pulsande e scegli il giorno in cui vorresti prenotare</p>
+
                 <div>
                     <button
                         className={styles.bookButton}
-                        onClick={() => setShowCalendar(true)}
+                        onClick={() => setShowCalendar(true)} 
                     >
                         Prenota ora
                     </button>
                 </div>
             </section>
 
-            <Calendar 
-                show={showCalendar}
-            />
+            <section className={styles.calendarSection}>
+                <Calendar 
+                    show={showCalendar}                    
+                />
+            </section>
         </div>
     );
 };

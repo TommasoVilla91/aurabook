@@ -25,3 +25,7 @@
 .bookButton:hover {
     background-color: #5a7b56;
 }
+
+.calendarSection {
+    padding-bottom: 4rem;
+}

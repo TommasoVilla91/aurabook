@@ -132,7 +132,7 @@
 
 .submitButton {
     width: 100%;
-    margin-top: 5rem;
+    margin-top: 1rem;
 }
 
 .submitButton button {
@@ -143,6 +143,7 @@
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
+    margin-bottom: 2rem;
 }
 
 .submitButton button:hover {
@@ -151,5 +152,5 @@
 }
 
 .submitButton p {
-    padding-top: 1rem;
+    padding-bottom: 1rem;
 }

@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../../supabase/supabaseClient';
 import ReactDOM from 'react-dom';
 import style from './EventModal.module.css';
 import dayjs from 'dayjs';
-import { Link } from 'react-router-dom';
-import { supabase } from '../../supabase/supabaseClient';
 
 function EventModal({ onClose, show, selectedDate }) {
 
@@ -12,10 +12,11 @@ function EventModal({ onClose, show, selectedDate }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-
-    // invocare la Edge Function quando il modale si apre (o la data cambia)
+    
     useEffect(() => {
         const fetchSlots = async () => {
+
+            // reset degli stati
             setLoading(true);
             setError(null);
             setSlots([]);
@@ -62,6 +63,8 @@ function EventModal({ onClose, show, selectedDate }) {
         if (show && selectedDate) {
             fetchSlots();
         }
+
+    // invocare la Edge Function quando il modale si apre (o la data cambia)
     }, [show, selectedDate]);
 
     const handleSlotClick = (slot) => {

@@ -1,21 +1,20 @@
+import { useRef, useState } from 'react';
 import styles from './Calendar.module.css';
+import EventModal from './EventModal';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid'; // Per la vista a mese (griglia di giorni)
 import interactionPlugin from '@fullcalendar/interaction'; // Fondamentale per rendere le date cliccabili
 import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import itLocale from '@fullcalendar/core/locales/it';
-import EventModal from './EventModal';
-import { useEffect, useRef, useState } from 'react';
 
 function Calendar({ show }) {
 
     const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
-    const calendarId = 'prova-ee5bd@group.calendar.google.com';
+    const calendarId = import.meta.env.VITE_CALENDAR_ID;
 
     const [showEventModal, setShowEventModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
-    // Stato per controllare la visibilità del menu a tendina dei mesi
-    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+    const [showMonthDropdown, setShowMonthDropdown] = useState(false); // stato menu a tendina per i mesi
     const calendarRef = useRef(null);
 
     // Questa funzione verrà chiamata quando l'utente clicca o seleziona una data/intervallo
@@ -83,10 +82,11 @@ function Calendar({ show }) {
             <div className={styles.calendarContainer}>
                 {show && (
                     <div className={styles.calendar}>
+
                         <FullCalendar
                             ref={calendarRef}
                             plugins={[
-                                dayGridPlugin,        // Abilita la vista a griglia (mese)
+                                dayGridPlugin,         // Abilita la vista a griglia (mese)
                                 interactionPlugin,     // Abilita le interazioni (selezione, click, drag/drop)
                                 googleCalendarPlugin   // Abilita il plugin per Google Calendar
                             ]}

@@ -1,6 +1,6 @@
 import styles from './AuthPage.module.css';
 import { supabase } from '../../supabase/supabaseClient';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -9,6 +9,7 @@ function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    
     const navigate = useNavigate();
 
 
