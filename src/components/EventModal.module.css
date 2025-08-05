@@ -24,6 +24,10 @@
     position: relative;
 }
 
+.loadingMessage, .errorMessage {
+    padding-bottom: 1.5rem;
+}
+
 .modalContent h2 {
     color: #384b34;
     max-width: 50%;

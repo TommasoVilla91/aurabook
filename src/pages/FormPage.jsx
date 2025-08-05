@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useGlobalContext } from '../context/GlobalContext';
 import { supabase } from '../../supabase/supabaseClient';
 import style from './FormPage.module.css';
 import dayjs from 'dayjs';
@@ -9,26 +10,16 @@ import PhoneInput from 'react-phone-number-input'; // Importa il componente
 import 'dayjs/locale/it'; // Importa la localizzazione italiana
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
 
-const getUserInfo = () => {
-    try {
-        const userInfo = localStorage.getItem('userInfo');
-        return userInfo ? JSON.parse(userInfo) : {};
-
-    } catch (err) {
-        console.error('Errore nel recuper dei dati dal localStorage:', err);
-        return {};
-    };
-}
 
 function FormPage() {
+    const { getUserInfo } = useGlobalContext();
+    const { date } = useParams(); // date=2025-07-18&time=11:00
 
     const userInfo = getUserInfo();
+    const navigate = useNavigate()
 
     dayjs.extend(localeData); // Estendi dayjs con il plugin
     dayjs.locale('it'); // Imposta la lingua globale a italiano
-    const navigate = useNavigate()
-
-    const { date } = useParams(); // date=2025-07-18&time=11:00
 
     const dayAndHour = date.replace("date=", "").split("&time="); // ["2025-07-18", "11:00"]
 
@@ -45,8 +36,8 @@ function FormPage() {
     const birthRef = useRef(null);
     const descrRef = useRef(null);
 
+    // se esistono già i valori nel localStorage, li recupera e li imposta
     useEffect(() => {
-
         if (birthRef.current && userInfo.birthdate) {
             birthRef.current.value = userInfo.birthdate;
         };
@@ -56,6 +47,7 @@ function FormPage() {
         };
     }, [userInfo]);
 
+    // salvataggio dati del form nel localStorage
     useEffect(() => {
         const userInfoObj = {
             name,
@@ -121,16 +113,15 @@ function FormPage() {
             message: descrRef.current.value
         };
 
-        const serviceId = "Mimmo91";
-        const templateId = "template_provaMail";
-        const publicKey = "cAoI8tLzje_6gIlLm";
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
         if (!infoValidation.areInfoValid || !templateParams.birthdate) {
             alert('Assicurati di aver compilato tutti i campi.');
             return;
 
         } else {
-
             try {
                 // chiamata alla libreria emailjs per inviare l'email con i dati del modulo
                 const res = await emailjs.send(serviceId, templateId, templateParams, publicKey);
@@ -197,6 +188,7 @@ function FormPage() {
                 <form onSubmit={handleSubmit}>
                     <div className={style.formTop}>
                         <div className={style.anagraphicInfo}>
+                            
                             <div className={style.col}>
                                 <label htmlFor="name">Nome:</label>
                                 <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -216,6 +208,7 @@ function FormPage() {
 
                             <div className={style.col}>
                                 <label htmlFor="phone">Telefono:</label>
+
                                 <PhoneInput
                                     id="phone-input" // L'ID per l'input generato
                                     value={phone}
@@ -227,6 +220,7 @@ function FormPage() {
                                 />
                                 {/* Mostra un errore se il telefono non è valido (il suo valore è null/undefined) */}
                                 {phone === undefined && <p className={style.error}>Inserisci un numero di telefono valido.</p>}
+                                
                             </div>
 
                             <div className={style.col}>
@@ -275,8 +269,8 @@ function FormPage() {
                     </div>
 
                     <div className={style.submitButton}>
-                        <button type="submit">Invia richiesta</button>
                         <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
+                        <button type="submit">Invia richiesta</button>
                     </div>
                 </form>
             </section>
