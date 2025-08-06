@@ -28,6 +28,35 @@
     padding-bottom: 1.5rem;
 }
 
+.loadingSection {
+    display: flex;
+    gap: 1.5rem;    
+}
+
+.skeleton {
+    width: 88.05px;
+    height: 42.4px;
+    background-color: #95cb8c;
+    border: none;
+    border-radius: 5px;
+    margin: 2rem 0 2rem 0;
+    position: relative;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, #e5eaf2 50%, transparent 60%);
+    background-size: 300%;
+    background-position-x: 100%;
+    animation: shimmer 1s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    to { background-position-x: 0% }
+}
+
 .modalContent h2 {
     color: #384b34;
     max-width: 50%;

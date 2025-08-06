@@ -12,7 +12,7 @@ function EventModal({ onClose, show, selectedDate }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    
+
     useEffect(() => {
         const fetchSlots = async () => {
 
@@ -64,7 +64,7 @@ function EventModal({ onClose, show, selectedDate }) {
             fetchSlots();
         }
 
-    // invocare la Edge Function quando il modale si apre (o la data cambia)
+        // invocare la Edge Function quando il modale si apre (o la data cambia)
     }, [show, selectedDate]);
 
     const handleSlotClick = (slot) => {
@@ -77,17 +77,24 @@ function EventModal({ onClose, show, selectedDate }) {
         <div className={style.eventModal}>
             <div className={style.modalContent}>
 
+                <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
+                <p>Tutte le visite hanno durata di 1 ora</p>
+
                 {loading ? (
-                    <p className={style.loadingMessage}>Caricamento orari disponibili...</p>
+                    // <p className={style.loadingMessage}>Caricamento orari disponibili...</p>
+                    <section className={style.loadingSection}>
+                        <div className={style.skeleton}></div>
+                        <div className={style.skeleton}></div>
+                        <div className={style.skeleton}></div>
+                        <div className={style.skeleton}></div>
+                        <div className={style.skeleton}></div>                    
+                    </section>
 
                 ) : error ? (
                     <p className={style.errorMessage}><strong>Errore:</strong> {error}</p>
 
                 ) : slots.length > 0 ? (
                     <div className={style.timeSlots}>
-
-                        <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
-                        <p>Tutte le visite hanno durata di 1 ora</p>
 
                         <div className={style.slotButtons}>
                             {slots.map((slot, i) => (
