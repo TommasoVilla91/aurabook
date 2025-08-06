@@ -33,6 +33,7 @@ function FormPage() {
     const [phone, setPhone] = useState(userInfo.phone || '');
     const [email, setEmail] = useState(userInfo.email || '');
     const [emailTouched, setEmailTouched] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const birthRef = useRef(null);
     const descrRef = useRef(null);
 
@@ -270,7 +271,22 @@ function FormPage() {
 
                     <div className={style.submitButton}>
                         <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
-                        <button type="submit">Invia richiesta</button>
+                        <div className={style.termConditions}>
+                            <input 
+                                type="checkbox" 
+                                id="term" 
+                                name="term" 
+                                value="term"
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                            />
+                            <label for="term">Accetta termini e condizioni</label>
+                        </div>
+                        <button 
+                            type="submit" 
+                            disabled={!termsAccepted}
+                        >
+                            Invia richiesta
+                        </button>
                     </div>
                 </form>
             </section>
