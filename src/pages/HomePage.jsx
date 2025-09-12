@@ -8,16 +8,18 @@ function HomePagae() {
 
     return (
         <div className={styles.homePage}>
-            <section className={styles.titles}>
+            <section className={styles.hero}>
 
-                <h1>Benvenuto!</h1>
-                <h4>Qui potrai prenotare la tua visita</h4>
-                <p>Premi il pulsande e scegli il giorno in cui vorresti prenotare</p>
+                <div className={styles.titles}>
+                    <h1>Esperienze su misura.</h1>
+                    <h3>La tua visita, le tue condizioni.</h3>
+                    <p>Scegli il momento perfetto per la tua salute. Con pochi passaggi, avrai la possibilità di chiedere un trattamento in un giorno a tua scelta.</p>
+                </div>
 
                 <div>
                     <button
                         className={styles.bookButton}
-                        onClick={() => setShowCalendar(true)} 
+                        onClick={() => setShowCalendar(true)}
                     >
                         Prenota ora
                     </button>
@@ -25,8 +27,8 @@ function HomePagae() {
             </section>
 
             <section className={styles.calendarSection}>
-                <Calendar 
-                    show={showCalendar}                    
+                <Calendar
+                    show={showCalendar}
                 />
             </section>
         </div>
