@@ -2,28 +2,68 @@
     background-color: #f7ffed;
 }
 
+.hero {
+    width: 100%;
+    height: 60vh;
+
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3)),
+        url('/public/hero-frenk.jpg');
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+
+    background-size: cover;
+    background-position: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
 .titles {
     text-align: center;
-    margin-top: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    color: #384b34;
-    padding-bottom: 3rem;
+    padding: 3rem 0 3rem 0;
+    font-size: 1.5rem;
+}
+
+.titles h1 {
+    margin-bottom: 3rem;
+}
+
+.textTitle {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .bookButton {
     background-color: #6b9065;
     color: #f7ffed;
     border: none;
-    padding: 10px 20px;
+    padding: 15px 30px;
     font-size: 1.2rem;
     cursor: pointer;
     border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
 }
 
 .bookButton:hover {
     background-color: #5a7b56;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.waveTransition {
+    background-color: transparent;
+    position: relative;
+    z-index: 10;
+    margin-top: -1px; /* Rimuove lo spazio extra */
 }
 
 .calendarSection {
