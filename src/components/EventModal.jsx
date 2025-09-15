@@ -77,11 +77,11 @@ function EventModal({ onClose, show, selectedDate }) {
         <div className={style.eventModal}>
             <div className={style.modalContent}>
 
-                <h2>Scegli uno degli orari tra quelli disponibili per il giorno <strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h2>
+                <h1><strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h1>
+                <h2>Scegli uno degli orari tra quelli disponibili</h2>
                 <p>Tutte le visite hanno durata di 1 ora</p>
 
                 {loading ? (
-                    // <p className={style.loadingMessage}>Caricamento orari disponibili...</p>
                     <section className={style.loadingSection}>
                         <div className={style.skeleton}></div>
                         <div className={style.skeleton}></div>
