@@ -1,99 +1,52 @@
 .formPage {
     background-color: #f7ffed;
     min-height: calc(100vh - 48px);
-}
-
-.formSection {
-    text-align: center;
-    padding-top: 2rem;
-    color: #384b34;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.formSection form {
-    width: 80%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 2rem;
-}
-
-.formSection input {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #b8d890;
-    margin-top: 0.5rem;
-    background-color: #f7ffed;
-    font-size: 1.2rem;
-}
-
-.formTop {
     display: flex;
     justify-content: center;
-    gap: 2rem;
-    width: 100%;
+    padding: 2rem 0;
 }
 
-.anagraphicInfo {
+.formContainer {
+    text-align: center;
+    color: #384b34;
+    display: flex;
+    align-items: center;
+    max-width: 80%;
+    border-radius: 20px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+}
+
+/******** RIGHT FORM IMAGE *******/
+
+.imageForm {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    width: 40%;
-    padding: 3rem 0rem;
-    border: 1px solid #5a7b56;
-    border-radius: 10px;
-    background-color: white;
-    color: #384b34;
+    align-items: start;
+    padding-left: 3rem;
+    width: 30%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+        url('/hero-frenk.jpg');
+    background-size: fill;
+    background-position: center;
+    color: white;
 }
 
-.col {
-    width: 80%;
-}
-
-.error {
-    color: red;
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
+.imageForm h1 {
+    padding: 4rem 0;
 }
 
 .bookingInfo {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    width: 20%;
-}
-
-.bookingInfo section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 3rem;
-    border: 1px solid #5a7b56;
-    border-radius: 10px;
-    background-color: white;
-    color: #384b34;
-}
-
-.dateSlot {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.bookingInfo section div h3 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: #5a7b56;
-}
-
-.timeSlot {
-    display: flex;
-    justify-content: center;
+    align-items: start;
+    justify-content: start;
     gap: 2rem;
+    color: white;
+    height: 100%;  
 }
 
 .changeDate {
@@ -109,10 +62,74 @@
     }
 }
 
-.description {
+/******* FORM *********/
+
+.formArea {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    padding: 0 3rem;
+}
+
+.formArea h1 {
+    padding: 4rem 0;
+}
+
+.formContainer form {
+    width: 100%;
+    display: flex;
+    justify-content: start;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.formContainer input {
     width: 100%;
     padding: 10px;
-    margin-top: 3rem;
+    border-radius: 5px;
+    border: 1px solid #b8d890;
+    margin-top: 0.5rem;
+    background-color: #f7ffed;
+    font-size: 1.2rem;
+}
+
+.formTop {
+    display: flex;
+    justify-content: start;
+    gap: 2rem;
+    width: 100%;
+}
+
+.anagraphicInfo {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+    border-radius: 10px;
+    background-color: white;
+    color: #384b34;
+}
+
+.col {
+    width: 100%;
+    text-align: start;
+}
+
+.error {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.description {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 1rem 0 3rem 0;
     color: #384b34;
 }
 
@@ -126,10 +143,12 @@
     width: 100%;
     padding: 10px;
     border-radius: 10px;
-    border: 1px solid #5a7b56;
-    background-color: white;
     font-size: 1.3rem;
+    border: 1px solid #b8d890;
+    background-color: #f7ffed;
 }
+
+/* submit button area */
 
 .submitButton {
     width: 100%;
@@ -142,12 +161,11 @@
 
 .submitButton button {
     padding: 10px;
-    width: 15%;
+    width: 50%;
     border-radius: 5px;
     border: none;
     color: white;
     font-size: 1.5rem;
-    margin-bottom: 2rem;
 }
 
 .submitButton button:disabled {
@@ -176,6 +194,6 @@
 }
 
 .termConditions label {
-  white-space: nowrap;
-  font-size: 14px;
+    white-space: nowrap;
+    font-size: 14px;
 }

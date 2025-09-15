@@ -183,114 +183,118 @@ function FormPage() {
 
     return (
         <div className={style.formPage}>
-            <section className={style.formSection}>
-                <h1>Modulo di Prenotazione</h1>
+            <section className={style.formContainer}>
 
-                <form onSubmit={handleSubmit}>
-                    <div className={style.formTop}>
-                        <div className={style.anagraphicInfo}>
-                            
-                            <div className={style.col}>
-                                <label htmlFor="name">Nome:</label>
-                                <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                                {infoValidation.nameField && <span className={style.error}>Il nome non può contenere simboli speciali.</span>}
+                <div className={style.imageForm}>
+
+                    <h1>La tua visita</h1>
+
+                    <div className={style.bookingInfo}>
+
+                        <h3>{formattedDate}</h3>
+                        <h3>{selectedTime}</h3>
+                        <h3>1h</h3>
+
+                        <Link to={'/'} className={style.changeDate}>Cambia data</Link>
+
+                    </div>
+                </div>
+
+                <div className={style.formArea}>
+
+                    <h1>Completa la tua prenotazione</h1>
+
+                    <form onSubmit={handleSubmit}>
+                        <div className={style.formTop}>
+
+                            {/* inputs area */}
+
+                            <div className={style.anagraphicInfo}>
+
+                                <div className={style.col}>
+                                    <label htmlFor="name">Nome:</label>
+                                    <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                                    {infoValidation.nameField && <span className={style.error}>Il nome non può contenere simboli speciali.</span>}
+                                </div>
+
+                                <div className={style.col}>
+                                    <label htmlFor="surname">Cognome:</label>
+                                    <input type="text" id="surname" name="surname" value={surname} onChange={(e) => setSurname(e.target.value)} required />
+                                    {infoValidation.surnameField && <span className={style.error}>Il cognome non può contenere simboli speciali.</span>}
+                                </div>
+
+                                <div className={style.col}>
+                                    <label htmlFor="date">Data di nascita:</label>
+                                    <input type="date" id="birth" name="birth" ref={birthRef} required />
+                                </div>
+
+                                <div className={style.col}>
+                                    <label htmlFor="phone">Telefono:</label>
+
+                                    <PhoneInput
+                                        id="phone-input" // L'ID per l'input generato
+                                        value={phone}
+                                        onChange={setPhone} // La libreria gestisce l'aggiornamento dello stato
+                                        defaultCountry="IT" // Imposta il paese predefinito (es. Italia)
+                                        international={true} // Rende l'input sempre internazionale (con prefisso)
+                                        countryCallingCodeEditable={false} // Impedisce la modifica del prefisso numerico diretto
+                                        withCountryCallingCode // Mostra il prefisso accanto alla bandiera
+                                    />
+                                    {/* Mostra un errore se il telefono non è valido (il suo valore è null/undefined) */}
+                                    {phone === undefined && <p className={style.error}>Inserisci un numero di telefono valido.</p>}
+
+                                </div>
+
+                                <div className={style.col}>
+                                    <label htmlFor="email">Email:</label>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        name="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        // onBlur si attiva quando l'input perde il focus
+                                        onBlur={() => setEmailTouched(true)}
+                                        required
+                                    />
+                                    {emailTouched && !infoValidation.emailField.isValid &&
+                                        <span className={style.error}>{infoValidation.emailField.errorMessage}</span>}
+                                </div>
                             </div>
+                        </div>
 
-                            <div className={style.col}>
-                                <label htmlFor="surname">Cognome:</label>
-                                <input type="text" id="surname" name="surname" value={surname} onChange={(e) => setSurname(e.target.value)} required />
-                                {infoValidation.surnameField && <span className={style.error}>Il cognome non può contenere simboli speciali.</span>}
-                            </div>
+                        {/* description area */}
 
-                            <div className={style.col}>
-                                <label htmlFor="date">Data di nascita:</label>
-                                <input type="date" id="birth" name="birth" ref={birthRef} required />
-                            </div>
+                        <div className={style.description}>
+                            <label htmlFor="description">Descrivi il motivo della visita</label>
+                            <textarea name="description" id="description" ref={descrRef} required></textarea>
+                        </div>
 
-                            <div className={style.col}>
-                                <label htmlFor="phone">Telefono:</label>
+                        {/* submit button area */}
 
-                                <PhoneInput
-                                    id="phone-input" // L'ID per l'input generato
-                                    value={phone}
-                                    onChange={setPhone} // La libreria gestisce l'aggiornamento dello stato
-                                    defaultCountry="IT" // Imposta il paese predefinito (es. Italia)
-                                    international={true} // Rende l'input sempre internazionale (con prefisso)
-                                    countryCallingCodeEditable={false} // Impedisce la modifica del prefisso numerico diretto
-                                    withCountryCallingCode // Mostra il prefisso accanto alla bandiera
-                                />
-                                {/* Mostra un errore se il telefono non è valido (il suo valore è null/undefined) */}
-                                {phone === undefined && <p className={style.error}>Inserisci un numero di telefono valido.</p>}
-                                
-                            </div>
-
-                            <div className={style.col}>
-                                <label htmlFor="email">Email:</label>
+                        <div className={style.submitButton}>
+                            <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
+                            <div className={style.termConditions}>
                                 <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    // onBlur si attiva quando l'input perde il focus
-                                    onBlur={() => setEmailTouched(true)}
-                                    required
+                                    type="checkbox"
+                                    id="term"
+                                    name="term"
+                                    value="term"
+                                    onChange={(e) => setTermsAccepted(e.target.checked)}
                                 />
-                                {emailTouched && !infoValidation.emailField.isValid &&
-                                    <span className={style.error}>{infoValidation.emailField.errorMessage}</span>}
+                                <label for="term">Accetta termini e condizioni</label>
                             </div>
+                            <button
+                                type="submit"
+                                disabled={!termsAccepted}
+                            >
+                                Invia richiesta
+                            </button>
                         </div>
-
-                        <div className={style.bookingInfo}>
-                            <section>
-                                <div className={style.dateSlot}>
-                                    <label>Data della visita:</label>
-                                    <h3>{formattedDate}</h3>
-                                </div>
-
-                                <div className={style.timeSlot}>
-                                    <div>
-                                        <label>Orario scelto:</label>
-                                        <h3>{selectedTime}</h3>
-                                    </div>
-                                    <div>
-                                        <label>Durata visita:</label>
-                                        <h3>1h</h3>
-                                    </div>
-                                </div>
-
-                                <Link to={'/'} className={style.changeDate}>Cambia data</Link>
-                            </section>
-                        </div>
-                    </div>
-
-                    <div className={style.description}>
-                        <label htmlFor="description">Descrivi il motivo della visita</label>
-                        <textarea name="description" id="description" ref={descrRef} required></textarea>
-                    </div>
-
-                    <div className={style.submitButton}>
-                        <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
-                        <div className={style.termConditions}>
-                            <input 
-                                type="checkbox" 
-                                id="term" 
-                                name="term" 
-                                value="term"
-                                onChange={(e) => setTermsAccepted(e.target.checked)}
-                            />
-                            <label for="term">Accetta termini e condizioni</label>
-                        </div>
-                        <button 
-                            type="submit" 
-                            disabled={!termsAccepted}
-                        >
-                            Invia richiesta
-                        </button>
-                    </div>
-                </form>
-            </section>
-        </div>
+                    </form>
+                </div>
+            </section >
+        </div >
     );
 };
 

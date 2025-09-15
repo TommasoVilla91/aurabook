@@ -1,16 +1,10 @@
-.homepage {
-    background-color: #f7ffed;
-}
-
 .hero {
     width: 100%;
-    height: 60vh;
+    height: calc(100vh - 48px);
 
     background-image:
-        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3)),
-        url('/public/hero-frenk.jpg');
-    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+        url('/public/hero-2.jpg');
 
     background-size: cover;
     background-position: center;
@@ -19,6 +13,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 1.5rem;
 }
 
 .titles {
@@ -54,18 +49,11 @@
 }
 
 .bookButton:hover {
-    background-color: #5a7b56;
+    background-color: #3e7038;
     transform: translateY(-3px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }
 
-.waveTransition {
-    background-color: transparent;
-    position: relative;
-    z-index: 10;
-    margin-top: -1px; /* Rimuove lo spazio extra */
-}
-
 .calendarSection {
-    padding-bottom: 4rem;
+    width: 50%;
 }
