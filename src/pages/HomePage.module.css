@@ -21,19 +21,12 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 3rem 0 3rem 0;
+    padding: 3rem;
     font-size: 1.5rem;
 }
 
 .titles h1 {
     margin-bottom: 3rem;
-}
-
-.textTitle {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
 }
 
 .bookButton {
@@ -54,6 +47,27 @@
     box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }
 
-.calendarSection {
-    width: 50%;
+
+@media screen and (max-width: 768px) {
+    .titles {
+        font-size: 1.2rem;
+        padding: 1.5rem;
+    }
+
+    .bookButton {
+        font-size: 1rem;
+        padding: 10px 20px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .titles {
+        font-size: 1rem;
+        padding: 1rem;
+    }
+
+    .bookButton {
+        font-size: 0.9rem;
+        padding: 8px 16px;
+    }
 }

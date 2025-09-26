@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase/supabaseClient';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
+import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
 import ReactDOM from 'react-dom';
 import style from './EventModal.module.css';
 import dayjs from 'dayjs';
+import 'dayjs/locale/it';
 
 function EventModal({ onClose, show, selectedDate }) {
 
@@ -12,6 +16,7 @@ function EventModal({ onClose, show, selectedDate }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    dayjs.locale('it');
 
     useEffect(() => {
         const fetchSlots = async () => {
@@ -77,46 +82,91 @@ function EventModal({ onClose, show, selectedDate }) {
         <div className={style.eventModal}>
             <div className={style.modalContent}>
 
-                <h1><strong>{dayjs(selectedDate).format('DD/MM/YYYY')}</strong></h1>
-                <h2>Scegli uno degli orari tra quelli disponibili</h2>
-                <p>Tutte le visite hanno durata di 1 ora</p>
+                {/* FASCIA VERDE */}
+                <div className={style.modalTitle}>
+                    <h2>Dettagli dell'appuntamento</h2>
+                    <div className={style.closeButton}>
+                        <button onClick={onClose}><strong>X</strong></button>
+                    </div>
+                </div>
 
-                {loading ? (
-                    <section className={style.loadingSection}>
-                        <div className={style.skeleton}></div>
-                        <div className={style.skeleton}></div>
-                        <div className={style.skeleton}></div>
-                        <div className={style.skeleton}></div>
-                        <div className={style.skeleton}></div>                    
-                    </section>
+                {/* INFORMAZIONI VISITA CON ICONE */}
+                <div className={style.modalBody}>
+                    <div className={style.modalInfo}>
+                        <div className={style.date}>
+                            <FontAwesomeIcon className={style.icon} icon={faCalendar} />
 
-                ) : error ? (
-                    <p className={style.errorMessage}><strong>Errore:</strong> {error}</p>
+                            <div>
+                                <h3>Data</h3>
+                                <p>{dayjs(selectedDate).format('D MMMM YYYY')}</p>
+                            </div>
 
-                ) : slots.length > 0 ? (
-                    <div className={style.timeSlots}>
+                        </div>
 
-                        <div className={style.slotButtons}>
-                            {slots.map((slot, i) => (
+                        <div className={style.duration}>
+                            <FontAwesomeIcon className={style.icon} icon={faClock} />
 
-                                <Link
-                                    to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`}
-                                    key={i}
-                                    onClick={() => handleSlotClick(slot)}
-                                    className={style.timeSlotButton}
-                                >
-                                    {slot}
-                                </Link>
+                            <div>
+                                <h3>Durata</h3>
+                                <p>Sessione di 1 ora</p>
+                            </div>
 
-                            ))}
+                        </div>
+
+                        <div className={style.address}>
+                            <FontAwesomeIcon className={style.icon} icon={faLocationDot} />
+
+                            <div>
+                                <h3>Indirizzo</h3>
+                                <p>Via fratelli Bronzetti, 9</p>
+                                <p>Milano, MI </p>
+                            </div>
+
                         </div>
                     </div>
-                ) : (
-                    <p className={style.noSlotMessage}><strong>Nessun orario disponibile per questa data.</strong></p>
-                )}
 
-                <div className={style.closeButton}>
-                    <button onClick={onClose}><strong>X</strong></button>
+                    {/* AREA SLOT ORARI */}
+                    <div className={style.modalSlots}>
+
+                        <div className={style.slotsArea}>
+                            <h3>Orari disponibili</h3>
+                            {loading ? (
+                                <section className={style.loadingSection}>
+                                    <div className={style.skeleton}></div>
+                                    <div className={style.skeleton}></div>
+                                    <div className={style.skeleton}></div>
+                                    <div className={style.skeleton}></div>
+                                    <div className={style.skeleton}></div>
+                                    <div className={style.skeleton}></div>
+                                </section>
+
+                            ) : error ? (
+                                <p className={style.errorMessage}><strong>Errore:</strong> {error}</p>
+
+                            ) : slots.length > 0 ? (
+                                <div className={style.timeSlots}>
+
+                                    <div className={style.slotButtons}>
+                                        {slots.map((slot, i) => (
+
+                                            <Link
+                                                to={`/form/date=${dayjs(selectedDate).format('YYYY-MM-DD')}&time=${slot}`}
+                                                key={i}
+                                                onClick={() => handleSlotClick(slot)}
+                                                className={style.timeSlotButton}
+                                            >
+                                                {slot}
+                                            </Link>
+
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className={style.noSlotMessage}><strong>Nessun orario disponibile per questa data.</strong></p>
+                            )}
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>,
