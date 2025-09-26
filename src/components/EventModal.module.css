@@ -13,33 +13,109 @@
 
 .modalContent {
     background-color: #F7F3EC;
-    max-width: 800px;
-    padding: 3rem 2.5rem;
+    width: 80vw;
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
+    overflow: hidden;
 }
 
-.loadingMessage, .errorMessage {
+.modalTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #5A7B56;
+    color: #F7F3EC;
+    padding: 1.5rem;
+}
+
+.closeButton button {
+    background-color: transparent;
+    border: none;
+    color: #F7F3EC;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
+.modalBody {
+    display: flex;
+}
+
+.modalInfo {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.date,
+.duration,
+.address {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    div {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 0.3rem;
+    }
+}
+
+.icon {
+    color: #5A7B56;
+    font-size: 2rem;
+}
+
+.modalInfo h3 {
+    color: #384b37;
+}
+
+.modalInfo p {
+    color: #5C5B5B;
+}
+
+.modalSlots {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;    
+    background-color: #ffe8b6;
+    padding: 2rem;
+}
+
+.modalSlots h3 {
+    color: #384b37;
+    padding-left: 1rem;
+    padding-bottom: 2rem;
+}
+
+.loadingMessage,
+.errorMessage {
     padding-bottom: 1.5rem;
 }
 
 .loadingSection {
     display: flex;
-    gap: 1.5rem;    
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 1rem;
+    row-gap: 1rem;
+    padding: 2rem;
 }
 
 .skeleton {
-    width: 88.05px;
-    height: 42.4px;
+    width: 100px;
+    height: 40px;
     background-color: #95cb8c;
     border: none;
     border-radius: 5px;
-    margin: 2rem 0 2rem 0;
     position: relative;
 }
 
@@ -54,46 +130,25 @@
 }
 
 @keyframes shimmer {
-    to { background-position-x: 0% }
-}
-
-.modalContent h1 {
-    padding-bottom: 3rem;
-    color: #445e41;
-}
-
-.modalContent h2 {
-    padding-bottom: 2rem;
-    color: #445e41;
-    max-width: 80%;
-}
-
-.modalContent p {
-    color: #5C5B5B;
-}
-
-.timeSlots {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-    padding: 1rem 2rem 0 2rem;
+    to {
+        background-position-x: 0%
+    }
 }
 
 .slotButtons {
     display: flex;
-    flex-direction: row;
-    justify-content: center;
-    gap: 1.5rem;
+    justify-content: space-around;
     flex-wrap: wrap;
+    gap: 1rem;
+    row-gap: 2rem;
 }
 
 .timeSlotButton {
+    width: 30%;
+    text-align: center;
     background-color: #5A7B56;
     color: #F7F3EC;
     border: none;
-    padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1.2rem;
@@ -105,23 +160,173 @@
     transform: translateY(-2px);
 }
 
-.closeButton {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-}
-
-.closeButton button {
-    background-color: transparent;
-    border: none;
-    color: #384b34;
-    font-size: 1.8rem;
-    cursor: pointer;
-}
-
 .noSlotMessage {
     color: rgb(39, 88, 39);
     font-size: 1.2rem;
     margin: 1.5rem 0 2.5rem 0;
     text-align: center;
+}
+
+
+@media screen and (max-width: 1024px) {
+    .skeleton {
+        width: 80px;
+        height: 35px;
+    }
+
+    .slotButtons {
+        gap: 0.5rem;
+        row-gap: 1.5rem;
+    }
+
+    .timeSlotButton {
+        width: 35%;
+        font-size: 1rem;
+    }
+}
+
+@media screen and (max-width: 980px) {
+    .modalContent {
+        width: 60vh;
+    }
+
+    .modalInfo {
+        width: 45%;
+        gap: 1.8rem;
+        padding: 1.8rem;
+    }
+    
+}
+
+@media screen and (max-width: 750px) {
+    .modalContent {
+        width: 90vw;
+    }
+
+    .modalInfo {
+        width: 50%;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .modalSlots {
+        width: 70%;
+    }
+
+    .slotButtons {
+        gap: 0.3rem;
+        row-gap: 1.5rem;
+    }
+
+    .timeSlotButton {
+        width: 32%;
+        font-size: 1.1rem;
+    }
+}
+
+@media screen and (max-width: 650px) {
+    .modalContent {
+        width: 40vh;
+    }
+
+    .modalBody {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .modalInfo {
+        width: 100%;
+        text-align: center;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .modalSlots {
+        width: 100%;
+        padding: 1.5rem;
+    }
+    
+}
+
+@media screen and (max-width: 480px) {
+    .modalTitle h2 {
+        font-size: 1.2rem;
+    }
+
+    .modalContent {
+        width: 90vw;
+    }
+
+    .modalBody {
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+    }
+
+    .modalInfo {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .modalSlots {
+        width: 100%;
+        padding: 1rem;
+    }
+
+    .timeSlotButton {
+        width: 30%;
+        font-size: 1rem;
+    }
+}
+
+@media screen and (max-width: 375px) {
+    .modalContent {
+        width: 80vw;
+    }
+
+    .modalInfo {
+        font-size: 0.8rem;
+    }
+
+    .icon {
+        font-size: 1.5rem;
+    }
+
+    .skeleton {
+        width: 60px;
+        height: 30px;
+    }
+
+    .slotButtons {
+        justify-content: space-between;
+        gap: 0.7rem;
+        row-gap: 0.7rem;
+    }
+
+    .timeSlotButton {
+        width: 30%;
+        font-size: 0.95rem;
+        padding: 0.4rem 0;
+    }
+}
+
+@media screen and (max-width: 320px) {
+    .skeleton {
+        width: 50px;
+        height: 30px;
+    }
+
+    .slotButtons {
+        justify-content: space-between;
+        gap: 0.5rem;
+        row-gap: 0.5rem;
+    }
+
+    .timeSlotButton {
+        width: 60px;
+        font-size: 0.9rem;
+        padding: 0.3rem 0;
+    }
 }
