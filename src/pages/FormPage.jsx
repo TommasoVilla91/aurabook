@@ -2,6 +2,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
 import { supabase } from '../../supabase/supabaseClient';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHourglassStart } from '@fortawesome/free-solid-svg-icons';
+import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
 import style from './FormPage.module.css';
 import dayjs from 'dayjs';
 import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dati locali
@@ -190,10 +193,18 @@ function FormPage() {
                     <h1>La tua visita</h1>
 
                     <div className={style.bookingInfo}>
-
-                        <h3>{formattedDate}</h3>
-                        <h3>{selectedTime}</h3>
-                        <h3>1h</h3>
+                        <div>
+                            <FontAwesomeIcon className={style.icon} icon={faCalendar} /> 
+                            <h3>{formattedDate}</h3>
+                        </div>
+                        <div>
+                            <FontAwesomeIcon className={style.icon} icon={faClock} />
+                            <h3>{selectedTime}</h3>
+                        </div>
+                        <div>
+                            <FontAwesomeIcon className={style.icon} icon={faHourglassStart} />
+                            <h3>1h</h3>
+                        </div>
 
                         <Link to={'/'} className={style.changeDate}>Cambia data</Link>
 
