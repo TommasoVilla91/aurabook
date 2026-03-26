@@ -22,8 +22,9 @@
     "@fullcalendar/react": "^6.1.17",
     "@fullcalendar/timegrid": "^6.1.17",
     "@sendgrid/mail": "^8.1.5",
-    "@supabase/supabase-js": "^2.51.0",
     "clndr": "^1.5.1",
+    "firebase": "^11.0.0",
+    "googleapis": "^144.0.0",
     "dayjs": "^1.11.13",
     "libphonenumber-js": "^1.12.9",
     "react": "^19.1.0",
@@ -40,7 +41,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
-    "supabase": "^2.31.8",
     "vite": "^7.0.0"
   }
 }
