@@ -73,10 +73,12 @@ export default async function handler(req, res) {
   availableSlots = filterPastSlots(availableSlots, dateString);
 
   try {
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const credentialsString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS;
+    if (!credentialsString) throw new Error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS not configured');
 
-    if (!privateKey || !clientEmail) throw new Error('Google credentials not configured');
+    const credentials = JSON.parse(credentialsString);
+    const privateKey = credentials.private_key.replace(/\\n/g, '\n');
+    const clientEmail = credentials.client_email;
 
     const jwtClient = new google.auth.JWT(
       clientEmail,
