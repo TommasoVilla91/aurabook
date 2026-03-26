@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useState } from "react";
-import { supabase } from '../../supabase/supabaseClient';
 
 const GlobalContext = createContext();
 
