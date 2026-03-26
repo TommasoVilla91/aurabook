@@ -1,32 +1,22 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {supabase} from '../../supabase/supabaseClient';
+import { auth } from '../../src/firebaseClient.js';
+import { onAuthStateChanged } from 'firebase/auth';
 
-function AuthCallback() { 
+function AuthCallback() {
 
     const navigate = useNavigate();
 
-    // La sottoscrizione al cambio di stato dell'autenticazione
     useEffect(() => {
-
-         // subscription = listener fondamentale
-         // supabase.auth.onAuthStateChange rileva quando la sessione è stata creata o ripristinata dopo il redirect OAuth. 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-
-                if (event === 'SIGNED_IN' && session) {
-                    navigate('/admin-dashboard');
-                    
-                } else if (event === 'SIGNED_OUT') {
-                    navigate('/login');
-                }
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/login');
             }
-        );
-
-        // Pulizia: rimuovi il listener quando il componente si smonta
-        return () => subscription.unsubscribe();
-
-    }, [navigate]); // navigate è una dipendenza, sebbene stabile
+        });
+        return () => unsubscribe();
+    }, [navigate]);
 
     return (
         <div style={{ textAlign: 'center', padding: '50px' }}>

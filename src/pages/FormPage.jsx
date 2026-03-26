@@ -1,7 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
-import { supabase } from '../../supabase/supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHourglassStart } from '@fortawesome/free-solid-svg-icons';
 import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
@@ -133,8 +132,10 @@ function FormPage() {
                     console.log('Email inviata con successo!', res);
                     alert('Prenotazione effettuata con successo!');
 
-                    const { data, error: functionError } = await supabase.functions.invoke('create-booking-event', {
-                        body: {
+                    const response = await fetch('/api/create-booking-event', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
                             name: name,
                             surname: surname,
                             phone: phone,
@@ -143,15 +144,16 @@ function FormPage() {
                             booking_date: selectedDate,
                             booking_time: selectedTime,
                             message: descrRef.current.value
-                        },
-                        method: 'POST',
+                        }),
                     });
 
-                    if (functionError) {
-                        console.error('Errore nelle invocazione della Edge Function:', functionError);
+                    if (!response.ok) {
+                        console.error('Errore nella richiesta:', response.status);
                         alert('Errore durante la creazione della prenotazione. Riprova più tardi.');
                         return;
                     };
+
+                    const data = await response.json();
 
                     if (data && data.success) {
                         alert('Prenotazione effettuata con successo! Riceverai una mail di conferma.');

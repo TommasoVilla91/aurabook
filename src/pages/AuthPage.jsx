@@ -1,5 +1,6 @@
 import styles from './AuthPage.module.css';
-import { supabase } from '../../supabase/supabaseClient';
+import { auth } from '../../src/firebaseClient.js';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,48 +10,32 @@ function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    
+
     const navigate = useNavigate();
 
 
-    // Funzione per accesso normale
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            navigate('/admin-dashboard');
+        } catch (error) {
             alert(error.message);
-        } else {
-            alert('Accesso riuscito!');
-            navigate('/admin-dashboard'); // Reindirizza l'admin alla dashboard
         }
         setLoading(false);
-    }
+    };
 
-    // Funzione per l'accesso con Google
     const handleGoogleLogin = async () => {
-
-        // operazione login in corso
         setLoading(true);
-
-        // avviamento processo autenticazione OAuth con Google
-        // funzione signInWithOAuth restitusce un oggetto con chiave error
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                // Indicare a Google dove reindirizzare l'utente dopo l'autenticazione
-                // dopo il login con Google, l'utente sarà reindirizzato in una pagina momentanea che gestirà il caricamento quando questo sarà lento
-                redirectTo: window.location.origin + '/auth/callback',
-            },
-        });
-        if (error) {
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+            navigate('/admin-dashboard');
+        } catch (error) {
             alert('Errore con Google login: ' + error.message);
             setLoading(false);
         }
-        // dopo il reindirizzamento da Google, Supabase gestirà la sessione
-        // non c'è un `else` perché il browser farà un redirect
     };
 
 
@@ -91,8 +76,8 @@ function LoginPage() {
                     </button>
                 </form>
 
-                <button 
-                    onClick={handleGoogleLogin} 
+                <button
+                    onClick={handleGoogleLogin}
                     disabled={loading}
                     className={styles.googleBtn}>
                     {loading ? 'Caricamento...' : 'Accedi con Google'}

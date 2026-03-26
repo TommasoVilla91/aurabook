@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../supabase/supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
@@ -34,20 +33,20 @@ function EventModal({ onClose, show, selectedDate }) {
             const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
 
             try {
-                // chiamata alla Edge Function
-                const { data, error: functionError } = await supabase.functions.invoke(`get-available-slots`, {
-                    body: { date: formattedDate }, // data come corpo della richiesta
+                const response = await fetch('/api/get-available-slots', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: formattedDate }),
                 });
 
-                // se capita un errore durante l'invocazione della funzione
-                if (functionError) {
-                    console.error('Errore nelle invocazione della Edge Function:', functionError);
+                if (!response.ok) {
+                    console.error('Errore nella richiesta:', response.status);
                     setError('Impossibile caricare gli slot');
                     return;
                 }
 
-                // se le funzione restituisce un oggetto 
+                const data = await response.json();
+
                 if (data && Array.isArray(data.slots)) {
                     setSlots(data.slots);
                     console.log('Slot disponibili ricevuti:', data.slots);
