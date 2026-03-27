@@ -70,6 +70,8 @@ export default async function handler(req, res) {
       emailError = 'SENDGRID_API_KEY non configurata nelle variabili d\'ambiente Vercel';
       console.warn('SendGrid skip:', emailError);
     } else {
+      // Log diagnostico: mostra i primi 7 caratteri per verificare che inizi con "SG."
+      console.log('SendGrid key prefix:', sendgridKey.substring(0, 7), '| length:', sendgridKey.length);
       sgMail.setApiKey(sendgridKey);
       // Genera subject e HTML dal template esterno (api/emailTemplates/customerConfirmation.js)
       const { subject, html } = customerConfirmationEmail({ name, dateLabel, booking_time });
