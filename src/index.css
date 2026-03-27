@@ -1,3 +1,29 @@
+/* ─── Google Fonts ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ─── Design tokens ─────────────────────────────────────────── */
+:root {
+    --green-dark:    #3e5c3b;
+    --green-mid:     #5a7b56;
+    --green-base:    #6b9065;
+    --green-light:   #8fc287;
+    --green-pale:    #d4f8cd;
+    --green-ghost:   #f4fbf2;
+    --cream:         #f7ffed;
+
+    --shadow-sm:     0 1px 4px rgba(0, 0, 0, 0.07);
+    --shadow-md:     0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg:     0 8px 32px rgba(0, 0, 0, 0.18);
+
+    --radius-sm:     6px;
+    --radius-md:     10px;
+    --radius-lg:     16px;
+
+    --transition:    0.2s ease;
+    --transition-bounce: 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* ─── Base reset ─────────────────────────────────────────────── */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -5,23 +31,142 @@
     font-family: 'Inter', sans-serif;
 }
 
-/* Stile per le celle dei giorni cliccabili */
+/* ─── FullCalendar overrides ─────────────────────────────────── */
+
+/* Day cells */
 .fc-daygrid-day {
-  cursor: pointer;
+    cursor: pointer;
+    transition: background-color var(--transition);
 }
 
-/* Stile che si applica quando il mouse passa sopra la cella */
-.fc-daygrid-day:hover {
-  background-color: #8fc287;
+.fc-daygrid-day:not(.fc-day-other):hover {
+    background-color: rgba(107, 144, 101, 0.22);
 }
 
-.fc-daygrid-day {
-  transition: background-color 0.2s ease-in-out;
+/* Disable Sundays */
+.fc-day-sun {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: default !important;
 }
 
-/* Stili per il titolo del calendario */
+/* Today highlight */
+.fc-day-today {
+    background-color: rgba(107, 144, 101, 0.18) !important;
+}
+
+/* Day numbers */
+.fc-daygrid-day-number {
+    color: #f7ffed;
+    font-size: 0.82rem;
+    padding: 4px 7px !important;
+    text-decoration: none !important;
+    transition: color var(--transition);
+}
+
+.fc-day-other .fc-daygrid-day-number {
+    color: rgba(247, 255, 237, 0.28) !important;
+}
+
+/* Today's number: circle badge */
+.fc-day-today .fc-daygrid-day-number {
+    background-color: var(--green-mid);
+    color: #f7ffed !important;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin: 3px;
+}
+
+/* Column headers (Lun, Mar…) */
+.fc-col-header-cell {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.4rem 0 !important;
+}
+
+.fc-col-header-cell-cushion {
+    color: rgba(247, 255, 237, 0.7) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    text-decoration: none !important;
+}
+
+/* Toolbar layout – true center alignment
+   FullCalendar usa space-between: i 3 chunk hanno larghezze diverse
+   → il titolo risulta spostato verso destra.
+   Fix: chunk uguali con flex:1, contenuto allineato separatamente. */
+.fc-header-toolbar .fc-toolbar-chunk {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
+    justify-content: center;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:nth-child(3) {
+    justify-content: flex-end;
+}
+
+/* Toolbar title */
 .fc-toolbar-title {
-  color: #f7ffed;
-  font-size: 2rem;
+    color: #f7ffed !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
 }
 
+/* Toolbar buttons */
+.fc-button {
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: var(--radius-sm) !important;
+    color: #f7ffed !important;
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.65rem !important;
+    transition: background-color var(--transition) !important;
+    box-shadow: none !important;
+    text-transform: capitalize !important;
+}
+
+.fc-button:hover {
+    background-color: rgba(255, 255, 255, 0.28) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.fc-button-active,
+.fc-button:focus {
+    background-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Grid borders */
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Events (Google Calendar) */
+.fc-event {
+    border-radius: 4px !important;
+    font-size: 0.68rem !important;
+    padding: 1px 4px !important;
+    opacity: 0.85;
+}

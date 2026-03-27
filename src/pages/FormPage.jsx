@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import PrivacyModal from '../components/PrivacyModal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,6 +12,7 @@ import emailjs from '@emailjs/browser'; // Importa la libreria EmailJS
 import PhoneInput from 'react-phone-number-input'; // Importa il componente
 import 'dayjs/locale/it'; // Importa la localizzazione italiana
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
+import { toast } from '../utils/toast';
 
 
 function FormPage() {
@@ -36,6 +38,8 @@ function FormPage() {
     const [email, setEmail] = useState(userInfo.email || '');
     const [emailTouched, setEmailTouched] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
+    // Controlla la visibilità della modale Privacy & Termini
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     const birthRef = useRef(null);
     const descrRef = useRef(null);
 
@@ -121,72 +125,75 @@ function FormPage() {
         const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
         if (!infoValidation.areInfoValid || !templateParams.birthdate) {
-            alert('Assicurati di aver compilato tutti i campi.');
+            toast.info('Assicurati di aver compilato tutti i campi.');
             return;
+        }
 
-        } else {
-            try {
-                // chiamata alla libreria emailjs per inviare l'email con i dati del modulo
-                const res = await emailjs.send(serviceId, templateId, templateParams, publicKey);
-                if (res.status === 200) {
-                    console.log('Email inviata con successo!', res);
-                    alert('Prenotazione effettuata con successo!');
+        // ── Step 1: notifica admin via EmailJS ──────────────────────────
+        try {
+            const res = await emailjs.send(serviceId, templateId, templateParams, publicKey);
+            if (res.status !== 200) {
+                // EmailJS ha risposto ma con uno status inatteso
+                console.error('EmailJS status inatteso:', res.status, res);
+                toast.error('Errore durante l\'invio della notifica. Riprova più tardi.');
+                return;
+            }
+            console.log('EmailJS: notifica admin inviata', res);
+        } catch (emailErr) {
+            console.error('EmailJS error:', emailErr);
+            toast.error('Errore durante l\'invio della notifica. Controlla la connessione e riprova.');
+            return;
+        }
 
-                    const response = await fetch('/api/create-booking-event', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: name,
-                            surname: surname,
-                            phone: phone,
-                            email: email,
-                            birthdate: birthRef.current.value,
-                            booking_date: selectedDate,
-                            booking_time: selectedTime,
-                            message: descrRef.current.value
-                        }),
-                    });
+        // ── Step 2: crea evento Google Calendar + email cliente ─────────
+        try {
+            const response = await fetch('/api/create-booking-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    surname: surname,
+                    phone: phone,
+                    email: email,
+                    birthdate: birthRef.current.value,
+                    booking_date: selectedDate,
+                    booking_time: selectedTime,
+                    message: descrRef.current.value
+                }),
+            });
 
-                    if (!response.ok) {
-                        console.error('Errore nella richiesta:', response.status);
-                        alert('Errore durante la creazione della prenotazione. Riprova più tardi.');
-                        return;
-                    };
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                console.error('API error:', response.status, errData);
+                toast.error('Errore durante la creazione della prenotazione. Riprova più tardi.');
+                return;
+            }
 
-                    const data = await response.json();
+            const data = await response.json();
 
-                    if (data && data.success) {
-                        alert('Prenotazione effettuata con successo! Riceverai una mail di conferma.');
+            if (data && data.success) {
+                toast.success('Prenotazione effettuata con successo! Riceverai una mail di conferma.');
 
-                        // Resetta il modulo dopo l'invio
-                        setName('');
-                        setSurname('');
-                        setPhone('');
-                        setEmail('');
-                        if (birthRef.current) {
-                            birthRef.current.value = '';
-                        };
-                        if (descrRef.current) {
-                            descrRef.current.value = '';
-                        };
+                // Resetta il modulo dopo l'invio
+                setName('');
+                setSurname('');
+                setPhone('');
+                setEmail('');
+                if (birthRef.current) birthRef.current.value = '';
+                if (descrRef.current) descrRef.current.value = '';
 
-                        navigate("/");
-                    };
+                navigate('/');
+            }
 
-                } else {
-                    console.error('Risposta inaspettata dalla Edge Function:', data);
-                    alert('Errore durante la prenotazione. Riprova più tardi.');
-                }
-
-            } catch (error) {
-                console.error('Errore durante l\'invio della prenotazione:', error);
-                alert('Si è verificato un errore durante la conferma della prenotazione. Riprova più tardi.');
-            };
-        };
+        } catch (apiErr) {
+            console.error('Errore API create-booking-event:', apiErr);
+            toast.error('Errore di rete durante la prenotazione. Riprova più tardi.');
+        }
     };
 
 
     return (
+        <>
         <div className={style.formPage}>
             <section className={style.formContainer}>
 
@@ -288,14 +295,26 @@ function FormPage() {
                         <div className={style.submitButton}>
                             <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
                             <div className={style.termConditions}>
+                                {/* Checkbox controllato dallo stato termsAccepted */}
                                 <input
                                     type="checkbox"
                                     id="term"
                                     name="term"
                                     value="term"
+                                    checked={termsAccepted}
                                     onChange={(e) => setTermsAccepted(e.target.checked)}
                                 />
-                                <label for="term">Accetta termini e condizioni</label>
+                                {/* Cliccando il link si apre la modale Privacy & Termini */}
+                                <label htmlFor="term">
+                                    Accetto i{' '}
+                                    <a
+                                        href="#"
+                                        className={style.privacyLink}
+                                        onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }}
+                                    >
+                                        Termini del Servizio e la Privacy Policy
+                                    </a>
+                                </label>
                             </div>
                             <button
                                 type="submit"
@@ -308,6 +327,18 @@ function FormPage() {
                 </div>
             </section >
         </div >
+
+        {/* Modale Privacy & Termini del Servizio
+            onAccept: imposta termsAccepted=true e chiude la modale */}
+        <PrivacyModal
+            show={showPrivacyModal}
+            onClose={() => setShowPrivacyModal(false)}
+            onAccept={() => {
+                setTermsAccepted(true);
+                setShowPrivacyModal(false);
+            }}
+        />
+        </>
     );
 };
 
