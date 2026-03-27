@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import PrivacyModal from '../components/PrivacyModal';
+import SuccessBookingModal from '../components/SuccessBookingModal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -40,6 +41,8 @@ function FormPage() {
     const [termsAccepted, setTermsAccepted] = useState(false);
     // Controlla la visibilità della modale Privacy & Termini
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+    // Dati del modale di successo (null = modale chiusa)
+    const [successData, setSuccessData] = useState(null);
     const birthRef = useRef(null);
     const descrRef = useRef(null);
 
@@ -172,9 +175,15 @@ function FormPage() {
             const data = await response.json();
 
             if (data && data.success) {
-                toast.success('Prenotazione effettuata con successo! Riceverai una mail di conferma.');
+                // Log diagnostico + avviso utente se SendGrid non ha inviato la mail
+                if (!data.emailSent) {
+                    console.warn('⚠️ Mail al cliente NON inviata:', data.emailError || 'motivo sconosciuto');
+                    toast.info('Prenotazione registrata! La mail di riepilogo potrebbe non essere arrivata — controlla la cartella spam.');
+                } else {
+                    console.log('✅ Mail al cliente inviata correttamente.');
+                }
 
-                // Resetta il modulo dopo l'invio
+                // Resetta il modulo
                 setName('');
                 setSurname('');
                 setPhone('');
@@ -182,7 +191,14 @@ function FormPage() {
                 if (birthRef.current) birthRef.current.value = '';
                 if (descrRef.current) descrRef.current.value = '';
 
-                navigate('/');
+                // Formatta la data per il modale (es. "martedì 15 aprile 2026")
+                const [y, m, d] = selectedDate.split('-').map(Number);
+                const dateLabel = new Date(y, m - 1, d).toLocaleDateString('it-IT', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                });
+
+                // Mostra il modale di riepilogo; la navigazione avviene alla chiusura
+                setSuccessData({ name, dateLabel, bookingTime: selectedTime });
             }
 
         } catch (apiErr) {
@@ -336,6 +352,18 @@ function FormPage() {
             onAccept={() => {
                 setTermsAccepted(true);
                 setShowPrivacyModal(false);
+            }}
+        />
+
+        {/* Modale di successo mostrata dopo l'invio della prenotazione */}
+        <SuccessBookingModal
+            show={!!successData}
+            name={successData?.name}
+            dateLabel={successData?.dateLabel}
+            bookingTime={successData?.bookingTime}
+            onClose={() => {
+                setSuccessData(null);
+                navigate('/');
             }}
         />
         </>
