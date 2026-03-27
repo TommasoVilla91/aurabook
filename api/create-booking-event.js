@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import sgMail from '@sendgrid/mail';
+import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,14 +34,16 @@ export default async function handler(req, res) {
     await jwtClient.authorize();
     const calendar = google.calendar({ version: 'v3', auth: jwtClient });
 
-    const eventStart = new Date(`${booking_date}T${booking_time}:00Z`);
-    const eventEnd = new Date(eventStart.getTime() + 60 * 60 * 1000);
+    // Costruisce start/end come stringhe locali (senza Z) nel fuso Europe/Rome.
+    // Google Calendar interpreta dateTime nel timeZone specificato quando non c'è offset esplicito.
+    const [endH, endM] = booking_time.split(':').map(Number);
+    const endTimeStr = `${String((endH + 1) % 24).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
     const event = {
       summary: `DA CONFERMARE: prenotazione ${name} ${surname}`,
       description: `Motivo visita: ${message}\n\nContatti:\nTelefono: ${phone}\nEmail: ${email}\nData di nascita: ${birthdate}`,
-      start: { dateTime: eventStart.toISOString(), timeZone: 'Europe/Rome' },
-      end: { dateTime: eventEnd.toISOString(), timeZone: 'Europe/Rome' },
+      start: { dateTime: `${booking_date}T${booking_time}:00`, timeZone: 'Europe/Rome' },
+      end:   { dateTime: `${booking_date}T${endTimeStr}:00`,   timeZone: 'Europe/Rome' },
       status: 'tentative',
     };
 
@@ -50,29 +53,38 @@ export default async function handler(req, res) {
       sendNotifications: true,
     });
 
+    // Formatta la data in italiano (es. "martedì 15 aprile 2026")
+    const [y, m, d] = booking_date.split('-').map(Number);
+    const dateLabel = new Date(y, m - 1, d).toLocaleDateString('it-IT', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    });
+
+    // ── SendGrid: mail di ricevuta al cliente ──────────────────────────
+    // emailSent viene incluso nella risposta per facilitare il debug in sviluppo.
+    // Un eventuale errore SendGrid non blocca la prenotazione (già salvata su Calendar).
+    let emailSent = false;
+    let emailError = null;
+
     const sendgridKey = process.env.SENDGRID_API_KEY;
-    if (sendgridKey) {
+    if (!sendgridKey) {
+      emailError = 'SENDGRID_API_KEY non configurata nelle variabili d\'ambiente Vercel';
+      console.warn('SendGrid skip:', emailError);
+    } else {
       sgMail.setApiKey(sendgridKey);
+      // Genera subject e HTML dal template esterno (api/emailTemplates/customerConfirmation.js)
+      const { subject, html } = customerConfirmationEmail({ name, dateLabel, booking_time });
       try {
         await sgMail.send({
           to: email,
+          // ⚠️  Sostituire con l'email mittente verificata in SendGrid Sender Authentication
           from: 'tommasovilla91@gmail.com',
-          subject: 'Conferma Prenotazione Massoterapista',
-          html: `
-            <h1>Ciao ${name},</h1>
-            <p>Grazie per aver prenotato la tua visita con Francesco.</p>
-            <p>Dettagli della prenotazione:</p>
-            <ul>
-              <li><strong>Data:</strong> ${booking_date}</li>
-              <li><strong>Ora:</strong> ${booking_time}</li>
-              <li><strong>Durata:</strong> 1 ora</li>
-            </ul>
-            <p>Sarai ricontattato da Francesco per la conferma finale.</p>
-            <p>Grazie mille ancora e a presto!</p>
-          `,
+          subject,
+          html,
         });
+        emailSent = true;
       } catch (sgError) {
-        console.error('SendGrid error:', sgError.message);
+        emailError = sgError.message;
+        console.error('SendGrid error:', sgError.message, sgError.response?.body);
       }
     }
 
@@ -80,6 +92,8 @@ export default async function handler(req, res) {
       success: true,
       message: 'Prenotazione effettuata!',
       eventLink: createdEvent.data.htmlLink,
+      emailSent,
+      ...(emailError && { emailError }),  // incluso solo se presente, utile in dev
     });
   } catch (err) {
     console.error('create-booking-event error:', err.message);
