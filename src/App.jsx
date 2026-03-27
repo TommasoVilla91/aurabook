@@ -8,6 +8,7 @@ import AuthPage from "./pages/AuthPage.jsx";
 import { auth } from "./firebaseClient.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { GlobalProvider } from "./context/GlobalContext.jsx";
+import Toaster from "./components/Toaster.jsx";
 import { useEffect, useState } from "react";
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
                     </Route>
                 </Routes>
             </BrowserRouter>
+            <Toaster />
         </GlobalProvider>
     );
 };

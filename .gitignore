@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 
 README.md
+
+.vercel
+.env*.local

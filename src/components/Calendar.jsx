@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from '../utils/toast';
 import styles from './Calendar.module.css';
 import EventModal from './EventModal';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid'; // Per la vista a mese (griglia di giorni)
-import interactionPlugin from '@fullcalendar/interaction'; // Fondamentale per rendere le date cliccabili
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import itLocale from '@fullcalendar/core/locales/it';
+
+const MONTHS = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+];
 
 function Calendar({ show }) {
 
@@ -14,170 +20,196 @@ function Calendar({ show }) {
 
     const [showEventModal, setShowEventModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
-    const [showMonthDropdown, setShowMonthDropdown] = useState(false); // stato menu a tendina per i mesi
-    const [calendarHeight, setCalendarHeight] = useState('60vh'); // Stato per altezza dinamica del calendario
+    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+
+    // Mobile picker state
+    const [mobileMonthIndex, setMobileMonthIndex] = useState(new Date().getMonth());
+    const [mobileYear, setMobileYear] = useState(new Date().getFullYear());
+    const [mobileDay, setMobileDay] = useState('');
+
     const calendarRef = useRef(null);
 
     useEffect(() => {
-        const handleResize = () => {
-            const width = window.innerWidth;
-            let newHeight = '60vh';
-            
-            
-            if (width <= 480) {
-                // Al di sotto di 480px (Mobile)
-                newHeight = '20vh'; // Ho cambiato 3vh con 90vh (o 30vh) per rendere il calendario visibile
-            } else if (width <= 700) {
-                // Tra 481px e 768px
-                newHeight = '30vh'; // Modificato per un'altezza più equilibrata
-            } else if (width <= 768) {
-                // Tra 481px e 768px
-                newHeight = '50vh'; // Modificato per un'altezza più equilibrata
-            } else {
-                // Sopra 1024px (Desktop)
-                newHeight = '60vh';
-            }
-
-            setCalendarHeight(newHeight);
-        };
-
-        window.addEventListener('resize', handleResize);
-        handleResize(); // Imposta l'altezza iniziale al caricamento
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
+        const onResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
     }, []);
 
-    // Questa funzione verrà chiamata quando l'utente clicca o seleziona una data/intervallo
+    // FullCalendar handlers
     const handleDateSelect = (selectInfo) => {
-        // selectInfo contiene tutte le informazioni sulla selezione
-        // Per esempio: selectInfo.startStr è la data di inizio selezionata (come stringa)
-        // selectInfo.endStr è la data di fine selezionata (come stringa)
-        // selectInfo.allDay è true se è una selezione di intera giornata
-
-        // Se vuoi deselezionare l'intervallo dopo l'azione
         selectInfo.view.calendar.unselect();
     };
 
-    // funzione al click sul singolo giorno
     const handleDateClick = (clickInfo) => {
-        // prendo la data cliccata formato YYYY-MM-DD (stringa)
         const clickedDate = new Date(clickInfo.dateStr);
-        clickedDate.setHours(0, 0, 0, 0); // Imposto l'orario a mezzanotte per confrontare solo le date
-
-        // prendo la data di oggi nello stesso orario della data cliccata
+        clickedDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (clickedDate.getDay() === 0) { // getDay() restituisce 0 per Domenica, 1 per Lunedì, ecc.
-            alert('Questo giorno non è disponibile per le prenotazioni.');
-            return;
-        };
-        // Controllo se la data cliccata è passata
-        if (clickedDate.getTime() < today.getTime()) { // getTime() restituisce il timestamp in millisecondi
-            alert('Non puoi prenotare una data passata.');
+        if (clickedDate.getDay() === 0) {
+            toast.info('Questo giorno non è disponibile per le prenotazioni.');
             return;
         }
-        // clickInfo.dateStr contiene la data cliccata
-        setShowEventModal(true);
-        // Salva la data selezionata per usarla nel modale
+        if (clickedDate.getTime() < today.getTime()) {
+            toast.info('Non puoi prenotare una data passata.');
+            return;
+        }
         setSelectedDate(clickInfo.date);
+        setShowEventModal(true);
     };
 
-    // Funzione per il click sul pulsante personalizzato "Mese"
     const handleMonthButtonClick = () => {
-        setShowMonthDropdown(prev => !prev); // Togglie la visibilità del dropdown
+        setShowMonthDropdown(prev => !prev);
     };
 
-    // Funzione per gestire la selezione di un mese dal dropdown
     const handleMonthSelect = (month) => {
-        // I mesi vanno da 0 (Gennaio) a 11 (Dicembre)
         if (calendarRef.current) {
-            const calendarApi = calendarRef.current.getApi(); // Ottieni l'istanza del calendario
-            const currentDate = calendarApi.getDate(); // Ottieni la data corrente del calendario
-            const currentYear = currentDate.getFullYear(); // Ottieni l'anno corrente
-
-            // Creazione di una nuova data con l'anno corrente e il mese selezionato
-            calendarApi.gotoDate(new Date(currentYear, month, 1)) // Vai al primo giorno del mese selezionato
+            const calendarApi = calendarRef.current.getApi();
+            const currentYear = calendarApi.getDate().getFullYear();
+            calendarApi.gotoDate(new Date(currentYear, month, 1));
         }
-        setShowMonthDropdown(false); // Chiude il dropdown dopo la selezione
+        setShowMonthDropdown(false);
     };
 
-    const months = [
-        'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-        'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
-    ];
+    // Mobile picker helpers
+    const getMonthOptions = () => {
+        const options = [];
+        const now = new Date();
+        for (let i = 0; i < 6; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            options.push({
+                label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+                month: d.getMonth(),
+                year: d.getFullYear(),
+            });
+        }
+        return options;
+    };
+
+    const getValidDays = () => {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const daysInMonth = new Date(mobileYear, mobileMonthIndex + 1, 0).getDate();
+        const days = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(mobileYear, mobileMonthIndex, d);
+            date.setHours(0, 0, 0, 0);
+            if (date.getDay() !== 0 && date >= now) {
+                days.push(d);
+            }
+        }
+        return days;
+    };
+
+    const handleMobileMonthChange = (e) => {
+        const [m, y] = e.target.value.split('-').map(Number);
+        setMobileMonthIndex(m);
+        setMobileYear(y);
+        setMobileDay('');
+    };
+
+    const handleMobileConfirm = () => {
+        if (!mobileDay) return;
+        const date = new Date(mobileYear, mobileMonthIndex, parseInt(mobileDay));
+        setSelectedDate(date);
+        setShowEventModal(true);
+    };
 
     return (
         <>
             {show && (
                 <div className={styles.calendar}>
 
-                    <FullCalendar
-                        contentHeight={calendarHeight}
-                        ref={calendarRef}
-                        plugins={[
-                            dayGridPlugin,         // Abilita la vista a griglia (mese)
-                            interactionPlugin,     // Abilita le interazioni (selezione, click, drag/drop)
-                            googleCalendarPlugin   // Abilita il plugin per Google Calendar
-                        ]}
-                        headerToolbar={{
-                            left: 'prev,next today', // Pulsanti "precedente", "successivo", "oggi"
-                            center: 'title', // Il titolo del mese/anno
-                            right: 'monthDropdown'
-                        }}
-                        initialView="dayGridMonth" // Vista iniziale adattata per mobile
-                        // Definizione dei pulsanti personalizzati
-                        customButtons={{
-                            monthDropdown: {
-                                text: 'Mese',
-                                click: handleMonthButtonClick // Funzione per il click sul pulsante "Mese"
-                            }
-                        }}
+                    {isMobile ? (
+                        <div className={styles.mobilePicker}>
+                            <p className={styles.mobileTitle}>Seleziona una data</p>
 
-                        locale={itLocale} // Imposta la lingua italiana per il calendario
-                        selectable={true} // **RENDE LE DATE CLICCABILI E SELEZIONABILI**
-                        selectMirror={true} // Mostra un'anteprima visiva della selezione
-                        dayMaxEvents={true} // Se ci sono troppi eventi in un giorno, li raggruppa sotto "+X more"
-
-                        // Callback quando l'utente seleziona un intervallo di date
-                        select={handleDateSelect}
-
-                        // Callback quando l'utente clicca su un singolo giorno (senza selezione)
-                        dateClick={handleDateClick}
-
-                        // Opzionale: per nascondere i weekend se non vuoi prenotazioni in quei giorni
-                        // weekends={false}
-
-                        googleCalendarApiKey={clientId} // La tua API key di Google Calendar
-
-                        // Qui definisci un oggetto che indica a FullCalendar di caricare eventi da un Google Calendar specifico
-                        events={[
-                            // sorgente del Google Calendar
-                            {
-                                googleCalendarId: calendarId,
-                                className: styles.event,
-                            },
-                        ]}
-                        eventsSet={(events) => {
-                            // alert('Eventi caricati:', events);
-                            // Qui puoi elaborare gli eventi per determinare la disponibilità
-                        }}
-                    />
-
-                    {showMonthDropdown && (
-                        <div className={styles.monthDropdown}>
-                            {months.map((month, i) => (
-                                <div
-                                    key={i}
-                                    onClick={() => handleMonthSelect(i)}
-                                    className={styles.monthOption}
+                            <div className={styles.mobileField}>
+                                <label className={styles.mobileLabel}>Mese</label>
+                                <select
+                                    className={styles.mobileSelect}
+                                    value={`${mobileMonthIndex}-${mobileYear}`}
+                                    onChange={handleMobileMonthChange}
                                 >
-                                    <p>{month}</p>
-                                </div>
-                            ))}
+                                    {getMonthOptions().map((opt, i) => (
+                                        <option key={i} value={`${opt.month}-${opt.year}`}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className={styles.mobileField}>
+                                <label className={styles.mobileLabel}>Giorno</label>
+                                <select
+                                    className={styles.mobileSelect}
+                                    value={mobileDay}
+                                    onChange={(e) => setMobileDay(e.target.value)}
+                                >
+                                    <option value="">— Seleziona —</option>
+                                    {getValidDays().map((d) => (
+                                        <option key={d} value={d}>{d}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button
+                                className={styles.mobileConfirmBtn}
+                                onClick={handleMobileConfirm}
+                                disabled={!mobileDay}
+                            >
+                                Vedi orari disponibili
+                            </button>
                         </div>
+                    ) : (
+                        <>
+                            <FullCalendar
+                                contentHeight="60vh"
+                                ref={calendarRef}
+                                plugins={[dayGridPlugin, interactionPlugin, googleCalendarPlugin]}
+                                headerToolbar={{
+                                    left: 'prev,next today',
+                                    center: 'title',
+                                    right: 'monthDropdown'
+                                }}
+                                initialView="dayGridMonth"
+                                customButtons={{
+                                    monthDropdown: {
+                                        text: 'Mese',
+                                        click: handleMonthButtonClick
+                                    }
+                                }}
+                                locale={itLocale}
+                                selectable={true}
+                                selectMirror={true}
+                                dayMaxEvents={true}
+                                select={handleDateSelect}
+                                dateClick={handleDateClick}
+                                googleCalendarApiKey={clientId}
+                                events={[
+                                    {
+                                        googleCalendarId: calendarId,
+                                        className: styles.event,
+                                    },
+                                ]}
+                                eventsSet={() => {}}
+                            />
+
+                            {showMonthDropdown && (
+                                <div className={styles.monthDropdown}>
+                                    {MONTHS.map((month, i) => (
+                                        <div
+                                            key={i}
+                                            onClick={() => handleMonthSelect(i)}
+                                            className={styles.monthOption}
+                                        >
+                                            <p>{month}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             )}
@@ -189,6 +221,6 @@ function Calendar({ show }) {
             />
         </>
     );
-};
+}
 
 export default Calendar;
