@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
 
 export default async function handler(req, res) {
@@ -59,34 +59,35 @@ export default async function handler(req, res) {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
 
-    // ── SendGrid: mail di ricevuta al cliente ──────────────────────────
+    // ── Nodemailer (Gmail SMTP): mail di ricevuta al cliente ──────────
     // emailSent viene incluso nella risposta per facilitare il debug in sviluppo.
-    // Un eventuale errore SendGrid non blocca la prenotazione (già salvata su Calendar).
+    // Un eventuale errore email non blocca la prenotazione (già salvata su Calendar).
     let emailSent = false;
     let emailError = null;
 
-    const sendgridKey = process.env.SENDGRID_API_KEY;
-    if (!sendgridKey) {
-      emailError = 'SENDGRID_API_KEY non configurata nelle variabili d\'ambiente Vercel';
-      console.warn('SendGrid skip:', emailError);
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    if (!gmailUser || !gmailPass) {
+      emailError = 'GMAIL_USER o GMAIL_APP_PASSWORD non configurate nelle variabili d\'ambiente Vercel';
+      console.warn('Nodemailer skip:', emailError);
     } else {
-      // Log diagnostico: mostra i primi 7 caratteri per verificare che inizi con "SG."
-      console.log('SendGrid key prefix:', sendgridKey.substring(0, 7), '| length:', sendgridKey.length);
-      sgMail.setApiKey(sendgridKey);
       // Genera subject e HTML dal template esterno (api/emailTemplates/customerConfirmation.js)
       const { subject, html } = customerConfirmationEmail({ name, dateLabel, booking_time });
       try {
-        await sgMail.send({
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: gmailUser, pass: gmailPass },
+        });
+        await transporter.sendMail({
+          from: `"Francesco · Massoterapista" <${gmailUser}>`,
           to: email,
-          // ⚠️  Sostituire con l'email mittente verificata in SendGrid Sender Authentication
-          from: 'tommasovilla91@gmail.com',
           subject,
           html,
         });
         emailSent = true;
-      } catch (sgError) {
-        emailError = sgError.message;
-        console.error('SendGrid error:', sgError.message, sgError.response?.body);
+      } catch (err) {
+        emailError = err.message;
+        console.error('Nodemailer error:', err.message);
       }
     }
 
