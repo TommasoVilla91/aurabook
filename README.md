@@ -1,50 +1,72 @@
-# 💆‍♂️ AURABOOKING
-### _Un sistema di prenotazioni che gestisce la disponibilità in tempo reale sincronizzandosi con Google Calendar._
+# AURABOOKING
+### _Sistema di prenotazioni online con sincronizzazione in tempo reale su Google Calendar_
 
-Questo progetto è un'applicazione web per la gestione degli appuntamenti, pensata per professionisti come massoterapisti, fisioterapisti, personal trainer o simili. L'obiettivo è offrire un'esperienza di prenotazione fluida per i clienti e una gestione automatizzata della disponibilità per il professionista.
+Applicazione web per la gestione degli appuntamenti, pensata per professionisti come massoterapisti, fisioterapisti e personal trainer. Offre un'esperienza di prenotazione fluida lato cliente e una gestione automatizzata della disponibilità lato professionista, con sincronizzazione istantanea su Google Calendar.
 
-Il sistema si integra in tempo reale con _Google Calendar_, assicurando che ogni prenotazione sia registrata immediatamente e che gli orari già occupati non siano disponibili.
+---
 
-## ⚙️ Tecnologie Utilizzate
-* **Backend**: _Deno Edge Functions su Supabase_ (per una logica serverless rapida e integrata).
+## Tecnologie
 
-* **Frontend**: _React.js_.
+| Layer | Tecnologia |
+|---|---|
+| Frontend | React 19 + Vite 7 (SPA, CSS Modules) |
+| Backend | Vercel Serverless Functions (Node.js) |
+| Calendario UI | FullCalendar |
+| Autenticazione admin | Firebase Authentication |
+| Calendario dati | Google Calendar API (service account JWT) |
+| Notifica admin | EmailJS (client-side) |
+| Email conferma cliente | Nodemailer + Gmail SMTP (server-side) |
+| Telefono | react-phone-number-input |
+| Icone | FontAwesome |
 
-* **Servizi Esterni**:
+---
 
-    * **_Google Calendar API_**: Per la lettura e l'impostazione degli eventi.
+## Flow di prenotazione
 
-    * **_EmailJS_**: Per l'invio di notifiche via email all'admin.
+### 1. Selezione della disponibilità
+L'utente apre il calendario (FullCalendar su desktop, picker a tendine su mobile).  
+Selezionando un giorno viene invocata una Vercel Serverless Function che:
+- legge gli eventi esistenti su Google Calendar tramite service account
+- calcola gli slot di disponibilità per quel giorno
+- filtra gli slot già occupati
 
-    * **_SendGrid_**: Per l'invio di email di conferma agli utenti.
+Gli slot disponibili vengono mostrati in un modale.
 
-* **_UI Components_**: _FullCalendar_ (per l'interfaccia di selezione della data) e _PhoneInput_ (per una gestione completa del numero di telefono inserito nel form).
+### 2. Compilazione del form
+L'utente sceglie uno slot orario e viene reindirizzato al form di prenotazione dove inserisce:
+- dati anagrafici (nome, cognome, data di nascita, telefono, email)
+- motivo della visita
+- accettazione dei Termini del Servizio e della Privacy Policy
 
-## 📲 Flow di Prenotazione:
+### 3. Invio e sincronizzazione
+Al submit del form vengono eseguiti due step in sequenza:
 
-1. ### 📅 **Selezione e Visualizzazione della Disponibilità**
+**Step 1 — Notifica admin (EmailJS, client-side)**
+Viene inviata un'email al professionista con tutti i dettagli della richiesta.
 
-    L'utente seleziona un giorno dal calendario _FullCalendar_. Una _Edge Function_ di _Supabase_ viene invocata per:
+**Step 2 — Creazione evento + email cliente (Vercel API)**
+La serverless function `api/create-booking-event.js`:
+- crea un evento su Google Calendar nello stato _tentative_ (`DA CONFERMARE`)
+- invia un'email di riepilogo al cliente tramite Nodemailer (Gmail SMTP)
 
-      * **Determinare gli slot di disponibilità** basati su regole predefinite.
+### 4. Modale di successo
+Dopo l'invio viene mostrato un modale con il riepilogo della prenotazione e le istruzioni sui passi successivi (il professionista contatterà il cliente per confermare).
 
-      * **Leggere gli eventi dal calendario Google** per quel giorno specifico.
+---
 
-      * **Filtrare gli slot disponibili**, rimuovendo quelli già occupati.
+## Logica di conferma
 
-      * Gli slot disponibili vengono mostrati in un **modale**.
+Le prenotazioni create dall'app sono in stato **tentativo** — non sono ancora confermate. Il professionista riceve la notifica via email, verifica la disponibilità sul suo calendario Google e contatta il cliente separatamente per la conferma definitiva.
 
-2. ### 📄 **Compilazione e Invio**
+---
 
-   L'utente sceglie un orario, viene reindirizzato a un modulo di prenotazione e inserisce i propri dati personali.
+## Area admin
 
-3. ### 💾 **Conferma e Sincronizzazione**
+Accessibile via Firebase Authentication. Il professionista può effettuare il login per gestire le proprie disponibilità e visualizzare le prenotazioni pendenti.
 
-    Al submit del modulo, un'altra _Edge Function_ di _Supabase_ gestisce il processo di conferma:
+---
 
-      * **Sincronizzazione Google Calendar**: Viene creato un nuovo evento nel calendario Google per bloccare lo slot prenotato.
+## Deploy
 
-      * **Notifica all'Admin**: Tramite _EmailJS_, viene inviata un'email al professionista con tutti i dettagli della prenotazione.
-
-      * **Conferma all'Utente**: Con _SendGrid_, viene inviata una email di conferma all'utente con il riepilogo dell'appuntamento.
-
+L'applicazione è deployata su **Vercel** con deploy automatico dal branch `main` di GitHub.  
+Il proxy Vite in sviluppo locale (`vite.config.js`) inoltra le chiamate `/api` verso il deployment Vercel di produzione.

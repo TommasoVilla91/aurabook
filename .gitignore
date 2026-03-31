@@ -26,5 +26,6 @@ dist-ssr
 
 README.md
 
+.claude
 .vercel
 .env*.local
