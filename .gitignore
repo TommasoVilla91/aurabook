@@ -29,3 +29,5 @@ README.md
 .claude
 .vercel
 .env*.local
+
+.env*.local

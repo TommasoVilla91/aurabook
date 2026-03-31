@@ -101,10 +101,20 @@ export default async function handler(req, res) {
 
     const events = calendarResponse.data.items || [];
 
+    // Ignora eventi marcati come "Libero" in Google Calendar (transparency = transparent).
+    // Francesco può usare questa impostazione per promemoria personali che non bloccano slot.
+    const busyEvents = events.filter((e) => e.transparency !== 'transparent');
+
+    // Se esiste un evento all-day di tipo ferie → nessuno slot disponibile per questo giorno.
+    const isVacationDay = busyEvents.some(
+      (e) => !e.start?.dateTime && e.extendedProperties?.private?.aurabookType === 'vacation'
+    );
+    if (isVacationDay) return res.status(200).json({ slots: [] });
+
     const finalSlots = availableSlots.filter((slotTime) => {
       const slotStart = new Date(`${dateString}T${slotTime}:00Z`);
       const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-      return !events.some((event) => {
+      return !busyEvents.some((event) => {
         const eStart = event.start?.dateTime
           ? new Date(event.start.dateTime)
           : new Date(`${event.start?.date}T00:00:00Z`);

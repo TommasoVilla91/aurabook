@@ -36,3 +36,22 @@ a.active {
     background-color: rgba(255, 255, 255, 0.18);
     font-weight: 600;
 }
+
+.logoutBtn {
+    color: rgba(247, 255, 237, 0.85);
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.logoutBtn:hover {
+    color: #f7ffed;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+}

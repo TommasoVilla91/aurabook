@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { auth } from "../firebaseClient";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const GlobalContext = createContext();
 
@@ -9,20 +11,25 @@ function GlobalProvider({ children }) {
         try {
             const userInfo = localStorage.getItem('userInfo');
             return userInfo ? JSON.parse(userInfo) : {};
-
         } catch (err) {
-            console.error('Errore nel recuper dei dati dal localStorage:', err);
+            console.error('Errore nel recupero dei dati dal localStorage:', err);
             return {};
         };
     };
 
-    // ===========================================
-    // MODALE
-    // ===========================================
+    // Sessione Firebase Auth — disponibile in tutta l'app (Navbar, dashboard, ecc.)
+    const [session, setSession] = useState(null);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, setSession);
+        return () => unsubscribe();
+    }, []);
 
+    const logout = () => signOut(auth);
 
     const providerValue = {
         getUserInfo,
+        session,
+        logout,
     }
 
     return <GlobalContext.Provider value={providerValue}>{children}</GlobalContext.Provider>

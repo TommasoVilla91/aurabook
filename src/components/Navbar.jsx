@@ -1,24 +1,27 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import styles from "./Navbar.module.css";
+import { useGlobalContext } from "../context/GlobalContext";
 
 function Navbar() {
+    const { session, logout } = useGlobalContext();
+    const navigate = useNavigate();
 
-    const navLinks = [
-        {
-            path: "/",
-            title: "Home"
-        },
-        {
-            path: "/login",
-            title: "Accedi"
-        }
-    ];
+    const handleLogout = async () => {
+        await logout();
+        navigate('/');
+    };
 
     return (
         <nav className={styles.navbar}>
-            {navLinks.map((link, index) => (
-                <NavLink key={index} to={link.path}>{link.title}</NavLink>
-            ))}
+            <NavLink to="/">Home</NavLink>
+            {session ? (
+                <>
+                    <NavLink to="/admin-dashboard">Dashboard</NavLink>
+                    <button className={styles.logoutBtn} onClick={handleLogout}>Esci</button>
+                </>
+            ) : (
+                <NavLink to="/login">Accedi</NavLink>
+            )}
         </nav>
     );
 };
