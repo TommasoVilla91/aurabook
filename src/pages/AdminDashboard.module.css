@@ -9,7 +9,7 @@
 }
 
 .container {
-    max-width: 720px;
+    max-width: 70%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -251,6 +251,169 @@
     padding: 0.6rem 0.9rem;
 }
 
+/* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — filtri
+   ───────────────────────────────────────────────────── */
+
+.bookingFilters {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filterBtn {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #5a7b56;
+    background: #fff;
+    border: 1px solid #c8e0c4;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filterBtn:hover {
+    background-color: #f0f8ee;
+}
+
+.filterActive {
+    background-color: #5a7b56;
+    color: #f7ffed;
+    border-color: #5a7b56;
+}
+
+/* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — tabella
+   ───────────────────────────────────────────────────── */
+
+/* Wrapper con scroll orizzontale su schermi piccoli */
+.tableWrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #d8eed5;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    background: #fff;
+}
+
+.th {
+    padding: 0.65rem 0.9rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #5a7b56;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background-color: #f4fbf2;
+    border-bottom: 1px solid #d8eed5;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.thSortable {
+    cursor: pointer;
+}
+
+.thSortable:hover {
+    background-color: #e8f5e4;
+}
+
+.sortIcon {
+    margin-left: 5px;
+    font-size: 0.7rem;
+    color: #8aab85;
+}
+
+.sortActive {
+    color: #3a5537;
+}
+
+.tr:nth-child(even) {
+    background-color: #fafefa;
+}
+
+.tr:hover {
+    background-color: #f0f8ee;
+}
+
+.td {
+    padding: 0.65rem 0.9rem;
+    color: #2d3a2b;
+    border-bottom: 1px solid #eef5ec;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tr:last-child .td {
+    border-bottom: none;
+}
+
+/* Link tel: e mailto: */
+.contactLink {
+    color: #3a6e35;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 500;
+    padding: 0;
+    background: none;
+}
+
+.contactLink:hover {
+    color: #2a4e27;
+}
+
+/* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — paginazione
+   ───────────────────────────────────────────────────── */
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding-top: 0.5rem;
+}
+
+.pageBtn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #c8e0c4;
+    border-radius: 8px;
+    color: #5a7b56;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.pageBtn:hover:not(:disabled) {
+    background-color: #f0f8ee;
+    border-color: #5a7b56;
+}
+
+.pageBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pageInfo {
+    font-size: 0.875rem;
+    color: #555;
+}
+
+.pageCount {
+    color: #888;
+}
+
 /* =====================================================
    MOBILE  ≤ 600px
    ===================================================== */
@@ -271,5 +434,15 @@
 
     .addBtn {
         justify-content: center;
+    }
+
+    /* Tabella: riduci padding celle su mobile */
+    .th, .td {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    .container {
+        max-width: 100%;
     }
 }

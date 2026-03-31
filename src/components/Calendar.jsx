@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '../utils/toast';
 import styles from './Calendar.module.css';
 import EventModal from './EventModal';
@@ -15,18 +15,18 @@ const MONTHS = [
 
 function Calendar({ show }) {
 
-    const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
+    const clientId  = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
     const calendarId = import.meta.env.VITE_CALENDAR_ID;
 
-    const [showEventModal, setShowEventModal] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(null);
+    const [showEventModal, setShowEventModal]       = useState(false);
+    const [selectedDate, setSelectedDate]           = useState(null);
     const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+    const [isMobile, setIsMobile]                   = useState(() => window.innerWidth <= 768);
 
     // Mobile picker state
     const [mobileMonthIndex, setMobileMonthIndex] = useState(new Date().getMonth());
-    const [mobileYear, setMobileYear] = useState(new Date().getFullYear());
-    const [mobileDay, setMobileDay] = useState('');
+    const [mobileYear, setMobileYear]             = useState(new Date().getFullYear());
+    const [mobileDay, setMobileDay]               = useState('');
 
     const calendarRef = useRef(null);
 
@@ -36,12 +36,13 @@ function Calendar({ show }) {
         return () => window.removeEventListener('resize', onResize);
     }, []);
 
-    // FullCalendar handlers
-    const handleDateSelect = (selectInfo) => {
-        selectInfo.view.calendar.unselect();
-    };
+    // ── FullCalendar handlers ────────────────────────────────────────────────
 
-    const handleDateClick = (clickInfo) => {
+    const handleDateSelect = useCallback((selectInfo) => {
+        selectInfo.view.calendar.unselect();
+    }, []);
+
+    const handleDateClick = useCallback((clickInfo) => {
         const clickedDate = new Date(clickInfo.dateStr);
         clickedDate.setHours(0, 0, 0, 0);
         const today = new Date();
@@ -57,23 +58,26 @@ function Calendar({ show }) {
         }
         setSelectedDate(clickInfo.date);
         setShowEventModal(true);
-    };
+    }, []);
 
-    const handleMonthButtonClick = () => {
+    const handleMonthButtonClick = useCallback(() => {
         setShowMonthDropdown(prev => !prev);
-    };
+    }, []);
 
-    const handleMonthSelect = (month) => {
+    const handleMonthSelect = useCallback((month) => {
         if (calendarRef.current) {
             const calendarApi = calendarRef.current.getApi();
             const currentYear = calendarApi.getDate().getFullYear();
             calendarApi.gotoDate(new Date(currentYear, month, 1));
         }
         setShowMonthDropdown(false);
-    };
+    }, []);
 
-    // Mobile picker helpers
-    const getMonthOptions = () => {
+    // ── Mobile picker helpers ────────────────────────────────────────────────
+
+    // useMemo: i mesi disponibili cambiano solo all'inizio di ogni nuovo mese.
+    // Stabile per tutta la sessione dell'utente nella stessa giornata.
+    const monthOptions = useMemo(() => {
         const options = [];
         const now = new Date();
         for (let i = 0; i < 6; i++) {
@@ -81,13 +85,14 @@ function Calendar({ show }) {
             options.push({
                 label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
                 month: d.getMonth(),
-                year: d.getFullYear(),
+                year:  d.getFullYear(),
             });
         }
         return options;
-    };
+    }, []);
 
-    const getValidDays = () => {
+    // useMemo: ricalcola i giorni validi solo quando cambia mese o anno nel picker
+    const validDays = useMemo(() => {
         const now = new Date();
         now.setHours(0, 0, 0, 0);
         const daysInMonth = new Date(mobileYear, mobileMonthIndex + 1, 0).getDate();
@@ -100,21 +105,25 @@ function Calendar({ show }) {
             }
         }
         return days;
-    };
+    }, [mobileMonthIndex, mobileYear]);
 
-    const handleMobileMonthChange = (e) => {
+    const handleMobileMonthChange = useCallback((e) => {
         const [m, y] = e.target.value.split('-').map(Number);
         setMobileMonthIndex(m);
         setMobileYear(y);
         setMobileDay('');
-    };
+    }, []);
 
-    const handleMobileConfirm = () => {
+    const handleMobileConfirm = useCallback(() => {
         if (!mobileDay) return;
         const date = new Date(mobileYear, mobileMonthIndex, parseInt(mobileDay));
         setSelectedDate(date);
         setShowEventModal(true);
-    };
+    }, [mobileDay, mobileMonthIndex, mobileYear]);
+
+    // useCallback: stabile — evita che EventModal (React.memo) si re-renderizzi
+    // quando Calendar aggiorna stato interno non correlato (es. showMonthDropdown)
+    const handleCloseEventModal = useCallback(() => setShowEventModal(false), []);
 
     return (
         <>
@@ -132,7 +141,7 @@ function Calendar({ show }) {
                                     value={`${mobileMonthIndex}-${mobileYear}`}
                                     onChange={handleMobileMonthChange}
                                 >
-                                    {getMonthOptions().map((opt, i) => (
+                                    {monthOptions.map((opt, i) => (
                                         <option key={i} value={`${opt.month}-${opt.year}`}>
                                             {opt.label}
                                         </option>
@@ -148,7 +157,7 @@ function Calendar({ show }) {
                                     onChange={(e) => setMobileDay(e.target.value)}
                                 >
                                     <option value="">— Seleziona —</option>
-                                    {getValidDays().map((d) => (
+                                    {validDays.map((d) => (
                                         <option key={d} value={d}>{d}</option>
                                     ))}
                                 </select>
@@ -216,7 +225,7 @@ function Calendar({ show }) {
 
             <EventModal
                 show={showEventModal}
-                onClose={() => setShowEventModal(false)}
+                onClose={handleCloseEventModal}
                 selectedDate={selectedDate}
             />
         </>

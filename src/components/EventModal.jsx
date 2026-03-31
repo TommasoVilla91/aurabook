@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
@@ -71,10 +71,11 @@ function EventModal({ onClose, show, selectedDate }) {
         // invocare la Edge Function quando il modale si apre (o la data cambia)
     }, [show, selectedDate]);
 
-    const handleSlotClick = (slot) => {
-        // alert(`Hai selezionato la data ${dayjs(selectedDate).format('DD/MM/YYYY')} allo slot ${slot}`);
+    // useCallback: onClose è stabile (definita in Calendar con useCallback),
+    // quindi handleSlotClick non verrà ricreata a ogni render
+    const handleSlotClick = useCallback(() => {
         onClose();
-    };
+    }, [onClose]);
 
 
     return show && ReactDOM.createPortal(
@@ -173,4 +174,7 @@ function EventModal({ onClose, show, selectedDate }) {
     );
 };
 
-export default EventModal;
+// React.memo: EventModal non si re-renderizza se show/selectedDate/onClose non cambiano.
+// Questo evita render inutili quando il parent (Calendar) aggiorna stato interno
+// (es. showMonthDropdown) che non riguarda il modale.
+export default memo(EventModal);
