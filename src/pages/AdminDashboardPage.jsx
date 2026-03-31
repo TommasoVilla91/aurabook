@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUmbrellaBeach, faTrash, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import { useGlobalContext } from '../context/GlobalContext';
+import { faUmbrellaBeach, faTrash, faPlus, faSpinner, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import style from './AdminDashboard.module.css';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -9,8 +8,17 @@ import style from './AdminDashboard.module.css';
 const formatDateIT = (dateStr) => {
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('it-IT', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
     });
+};
+
+const formatRangeIT = (dateFrom, dateTo) => {
+    if (dateFrom === dateTo) return formatDateIT(dateFrom);
+    const [yf, mf, df] = dateFrom.split('-').map(Number);
+    const [yt, mt, dt] = dateTo.split('-').map(Number);
+    const from = new Date(yf, mf - 1, df).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+    const to   = new Date(yt, mt - 1, dt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+    return `${from} – ${to}`;
 };
 
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -18,8 +26,6 @@ const todayStr = () => new Date().toISOString().split('T')[0];
 // ── Componente principale ──────────────────────────────────────────────────
 
 function AdminDashboardPage() {
-    const { logout } = useGlobalContext();
-
     const [activeTab, setActiveTab] = useState('ferie');
 
     return (
@@ -44,7 +50,6 @@ function AdminDashboardPage() {
                     </button>
                 </div>
 
-                {/* Contenuto tab */}
                 {activeTab === 'ferie' && <FerieTab />}
 
             </div>
@@ -57,12 +62,12 @@ function AdminDashboardPage() {
 function FerieTab() {
     const [vacations, setVacations] = useState([]);
     const [loadingList, setLoadingList] = useState(true);
-    const [newDate, setNewDate] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [adding, setAdding] = useState(false);
     const [removingId, setRemovingId] = useState(null);
     const [error, setError] = useState(null);
 
-    // Carica ferie esistenti
     const fetchVacations = async () => {
         setLoadingList(true);
         setError(null);
@@ -80,21 +85,29 @@ function FerieTab() {
 
     useEffect(() => { fetchVacations(); }, []);
 
-    // Aggiungi giorno di ferie
+    // Quando cambia dateFrom, se dateTo è precedente lo resetta
+    const handleDateFromChange = (val) => {
+        setDateFrom(val);
+        if (dateTo && dateTo < val) setDateTo('');
+    };
+
     const handleAdd = async () => {
-        if (!newDate) return;
+        if (!dateFrom) return;
         setAdding(true);
         setError(null);
         try {
             const res = await fetch('/api/manage-vacation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: newDate }),
+                body: JSON.stringify({ dateFrom, dateTo: dateTo || dateFrom }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.details || data.error || 'Errore aggiunta ferie');
-            setVacations((prev) => [...prev, data.vacation].sort((a, b) => a.date.localeCompare(b.date)));
-            setNewDate('');
+            setVacations((prev) =>
+                [...prev, data.vacation].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom))
+            );
+            setDateFrom('');
+            setDateTo('');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -102,7 +115,6 @@ function FerieTab() {
         }
     };
 
-    // Rimuovi giorno di ferie
     const handleRemove = async (eventId) => {
         setRemovingId(eventId);
         setError(null);
@@ -126,22 +138,39 @@ function FerieTab() {
         <div className={style.tabContent}>
 
             <p className={style.tabDescription}>
-                Aggiungi le date in cui non sei disponibile. I clienti non potranno prenotare in quei giorni.
+                Aggiungi i giorni in cui non sei disponibile. Puoi selezionare un giorno singolo o un intervallo di date.
             </p>
 
-            {/* Form aggiunta */}
-            <div className={style.addRow}>
-                <input
-                    type="date"
-                    className={style.dateInput}
-                    value={newDate}
-                    min={todayStr()}
-                    onChange={(e) => setNewDate(e.target.value)}
-                />
+            {/* Form aggiunta range */}
+            <div className={style.rangeForm}>
+                <div className={style.rangeFields}>
+                    <div className={style.dateField}>
+                        <label className={style.dateLabel}>Dal</label>
+                        <input
+                            type="date"
+                            className={style.dateInput}
+                            value={dateFrom}
+                            min={todayStr()}
+                            onChange={(e) => handleDateFromChange(e.target.value)}
+                        />
+                    </div>
+                    <FontAwesomeIcon icon={faArrowRight} className={style.rangeArrow} />
+                    <div className={style.dateField}>
+                        <label className={style.dateLabel}>Al (opzionale)</label>
+                        <input
+                            type="date"
+                            className={style.dateInput}
+                            value={dateTo}
+                            min={dateFrom || todayStr()}
+                            disabled={!dateFrom}
+                            onChange={(e) => setDateTo(e.target.value)}
+                        />
+                    </div>
+                </div>
                 <button
                     className={style.addBtn}
                     onClick={handleAdd}
-                    disabled={!newDate || adding}
+                    disabled={!dateFrom || adding}
                 >
                     {adding
                         ? <FontAwesomeIcon icon={faSpinner} spin />
@@ -159,12 +188,14 @@ function FerieTab() {
                         <FontAwesomeIcon icon={faSpinner} spin /> Caricamento…
                     </p>
                 ) : vacations.length === 0 ? (
-                    <p className={style.emptyMsg}>Nessun giorno di ferie programmato.</p>
+                    <p className={style.emptyMsg}>Nessun periodo di ferie programmato.</p>
                 ) : (
                     vacations.map((v) => (
                         <div key={v.id} className={style.vacationRow}>
                             <FontAwesomeIcon icon={faUmbrellaBeach} className={style.vacationIcon} />
-                            <span className={style.vacationDate}>{formatDateIT(v.date)}</span>
+                            <span className={style.vacationDate}>
+                                {formatRangeIT(v.dateFrom, v.dateTo)}
+                            </span>
                             <button
                                 className={style.removeBtn}
                                 onClick={() => handleRemove(v.id)}

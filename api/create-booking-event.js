@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { getAuthorizedCalendar } from './lib/googleAuth.js';
 import nodemailer from 'nodemailer';
 import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
 
@@ -17,22 +17,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const credentialsString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS;
-    if (!credentialsString) throw new Error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS not configured');
-
-    const credentials = JSON.parse(credentialsString);
-    const privateKey = credentials.private_key.replace(/\\n/g, '\n');
-    const clientEmail = credentials.client_email;
-
-    const jwtClient = new google.auth.JWT(
-      clientEmail,
-      null,
-      privateKey,
-      ['https://www.googleapis.com/auth/calendar.events']
-    );
-
-    await jwtClient.authorize();
-    const calendar = google.calendar({ version: 'v3', auth: jwtClient });
+    const calendar = await getAuthorizedCalendar();
 
     // Costruisce start/end come stringhe locali (senza Z) nel fuso Europe/Rome.
     // Google Calendar interpreta dateTime nel timeZone specificato quando non c'è offset esplicito.

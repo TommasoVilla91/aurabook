@@ -1,5 +1,5 @@
 import styles from './AuthPage.module.css';
-import { auth } from '../../src/firebaseClient.js';
+import { auth } from '../firebaseClient.js';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';

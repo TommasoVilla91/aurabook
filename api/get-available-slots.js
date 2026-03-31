@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { getAuthorizedCalendar } from './lib/googleAuth.js';
 
 const dailyAvailabilityRules = {
   1: { start: '15:30', end: '19:30' },
@@ -73,22 +73,7 @@ export default async function handler(req, res) {
   availableSlots = filterPastSlots(availableSlots, dateString);
 
   try {
-    const credentialsString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS;
-    if (!credentialsString) throw new Error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS not configured');
-
-    const credentials = JSON.parse(credentialsString);
-    const privateKey = credentials.private_key.replace(/\\n/g, '\n');
-    const clientEmail = credentials.client_email;
-
-    const jwtClient = new google.auth.JWT(
-      clientEmail,
-      null,
-      privateKey,
-      ['https://www.googleapis.com/auth/calendar.events.readonly']
-    );
-
-    await jwtClient.authorize();
-    const calendar = google.calendar({ version: 'v3', auth: jwtClient });
+    const calendar = await getAuthorizedCalendar(['https://www.googleapis.com/auth/calendar.events.readonly']);
 
     const calendarResponse = await calendar.events.list({
       calendarId: process.env.GOOGLE_CALENDAR_ID,

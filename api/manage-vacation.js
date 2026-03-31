@@ -1,19 +1,10 @@
-import { google } from 'googleapis';
+import { getAuthorizedCalendar } from './lib/googleAuth.js';
 
-// Helper: autentica con il service account e ritorna un client Google Calendar
-async function getCalendarClient() {
-  const credentialsString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS;
-  if (!credentialsString) throw new Error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS not configured');
-
-  const credentials = JSON.parse(credentialsString);
-  const jwtClient = new google.auth.JWT(
-    credentials.client_email,
-    null,
-    credentials.private_key.replace(/\\n/g, '\n'),
-    ['https://www.googleapis.com/auth/calendar.events']
-  );
-  await jwtClient.authorize();
-  return google.calendar({ version: 'v3', auth: jwtClient });
+// Aggiunge 1 giorno a una stringa YYYY-MM-DD (per la fine esclusiva GCal)
+function addOneDay(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return next.toISOString().split('T')[0];
 }
 
 export default async function handler(req, res) {
@@ -26,7 +17,7 @@ export default async function handler(req, res) {
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
 
   try {
-    const calendar = await getCalendarClient();
+    const calendar = await getAuthorizedCalendar();
 
     // ── GET: lista ferie future ─────────────────────────────────────────────
     if (req.method === 'GET') {
@@ -34,54 +25,65 @@ export default async function handler(req, res) {
         calendarId,
         timeMin: new Date().toISOString(),
         privateExtendedProperty: 'aurabookType=vacation',
-        singleEvents: true,
-        orderBy: 'startTime',
+        singleEvents: false,   // non espandere: vogliamo l'evento unico del range
+        orderBy: 'updated',
         showDeleted: false,
       });
 
-      const vacations = (response.data.items || []).map((e) => ({
-        id: e.id,
-        date: e.start.date,   // formato YYYY-MM-DD
-        summary: e.summary,
-      }));
+      const vacations = (response.data.items || [])
+        .filter((e) => e.start?.date)  // solo all-day
+        .sort((a, b) => a.start.date.localeCompare(b.start.date))
+        .map((e) => {
+          const dateFrom = e.start.date;
+          // GCal end è esclusivo: sottraiamo 1 giorno per il dateTo reale
+          const [y, m, d] = e.end.date.split('-').map(Number);
+          const dateTo = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().split('T')[0];
+          return { id: e.id, dateFrom, dateTo };
+        });
 
       return res.status(200).json({ vacations });
     }
 
-    // ── POST: aggiungi giorno di ferie ──────────────────────────────────────
+    // ── POST: aggiungi range di ferie ───────────────────────────────────────
     if (req.method === 'POST') {
-      const { date } = req.body;  // es. "2026-08-15"
-      if (!date) return res.status(400).json({ error: 'Missing date parameter' });
+      const { dateFrom, dateTo } = req.body;
+      if (!dateFrom) return res.status(400).json({ error: 'Missing dateFrom parameter' });
 
-      // Google Calendar usa la fine esclusiva per gli eventi all-day:
-      // un evento dal 15 al 16 agosto appare come "15 agosto" nel calendario.
-      const [y, m, d] = date.split('-').map(Number);
-      const endDate = new Date(Date.UTC(y, m - 1, d + 1));
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDate = dateFrom;
+      // Se dateTo non è specificato o è uguale a dateFrom → singolo giorno
+      const endDate = addOneDay(dateTo && dateTo >= dateFrom ? dateTo : dateFrom);
+
+      // Label per il summary del calendario
+      const isSingleDay = endDate === addOneDay(dateFrom);
+      const summary = isSingleDay ? '🌴 Ferie' : `🌴 Ferie (${dateFrom} → ${dateTo})`;
 
       const created = await calendar.events.insert({
         calendarId,
         requestBody: {
-          summary: '🌴 Ferie',
-          start: { date },
-          end:   { date: endDateStr },
+          summary,
+          start: { date: startDate },
+          end:   { date: endDate },
           extendedProperties: {
             private: { aurabookType: 'vacation' },
           },
         },
       });
 
+      // dateTo reale = endDate - 1 giorno
+      const [y, m, d] = endDate.split('-').map(Number);
+      const realDateTo = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().split('T')[0];
+
       return res.status(200).json({
         success: true,
         vacation: {
           id: created.data.id,
-          date,
-          summary: created.data.summary,
+          dateFrom: startDate,
+          dateTo: realDateTo,
         },
       });
     }
 
-    // ── DELETE: rimuovi giorno di ferie per eventId ─────────────────────────
+    // ── DELETE: rimuovi range di ferie per eventId ──────────────────────────
     if (req.method === 'DELETE') {
       const { eventId } = req.body;
       if (!eventId) return res.status(400).json({ error: 'Missing eventId parameter' });
