@@ -252,6 +252,71 @@
 }
 
 /* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — area ricerca
+   ───────────────────────────────────────────────────── */
+
+.searchArea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    background: #f9fdf7;
+    border: 1px solid #d8eed5;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+}
+
+.searchRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.searchField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    min-width: 140px;
+}
+
+.searchField:first-child {
+    flex: 2; /* searchbar più larga */
+}
+
+.searchActions {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.searchResetBtn {
+    padding: 0.55rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #555;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.searchResetBtn:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+.searchResultNote {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #5a7b56;
+    font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────
    Tab Prenotazioni — filtri
    ───────────────────────────────────────────────────── */
 
@@ -842,5 +907,19 @@
     .modal {
         max-width: 100%;
         border-radius: 10px;
+    }
+
+    /* Search area: campi in colonna su mobile */
+    .searchRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .searchField:first-child {
+        flex: 1;
+    }
+
+    .searchActions {
+        justify-content: flex-end;
     }
 }

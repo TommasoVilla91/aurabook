@@ -4,5 +4,11 @@
       "source": "/((?!api/)(?!@)(?!.*\\.[a-zA-Z0-9]{1,5}$).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-cleanup-bookings",
+      "schedule": "0 3 * * *"
+    }
   ]
 }

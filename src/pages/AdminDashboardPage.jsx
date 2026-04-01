@@ -349,9 +349,18 @@ function PrenotazioniTab() {
     const [sortKey, setSortKey]             = useState('date');
     const [sortDir, setSortDir]             = useState('asc');
     const [page, setPage]                   = useState(1);
-    const [editingBooking, setEditingBooking]   = useState(null); // prenotazione in modifica
-    const [deletingBooking, setDeletingBooking] = useState(null); // prenotazione da eliminare
-    const [alertMessage, setAlertMessage]       = useState(null); // testo per AlertModal
+    const [editingBooking, setEditingBooking]   = useState(null);
+    const [deletingBooking, setDeletingBooking] = useState(null);
+    const [alertMessage, setAlertMessage]       = useState(null);
+
+    // ── Stato campi ricerca (non ancora applicati) ──
+    const [searchText, setSearchText]         = useState('');
+    const [searchDateFrom, setSearchDateFrom] = useState('');
+    const [searchDateTo, setSearchDateTo]     = useState('');
+    const [searchTimeFrom, setSearchTimeFrom] = useState('');
+    const [searchTimeTo, setSearchTimeTo]     = useState('');
+    // ── Filtri applicati (aggiornati solo al click "Cerca") ──
+    const [appliedSearch, setAppliedSearch]   = useState(null);
 
     const fetchBookings = useCallback(async () => {
         setLoading(true);
@@ -369,7 +378,7 @@ function PrenotazioniTab() {
     }, []);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
-    useEffect(() => { setPage(1); }, [filter, sortKey, sortDir]);
+    useEffect(() => { setPage(1); }, [filter, sortKey, sortDir, appliedSearch]);
 
     const handleSort = useCallback((col) => {
         if (col.sortType === null) return;
@@ -399,26 +408,143 @@ function PrenotazioniTab() {
         setAlertMessage(msg);
     }, []);
 
+    // Gestori ricerca
+    const handleSearch = useCallback(() => {
+        setAppliedSearch({ searchText, searchDateFrom, searchDateTo, searchTimeFrom, searchTimeTo });
+    }, [searchText, searchDateFrom, searchDateTo, searchTimeFrom, searchTimeTo]);
+
+    const handleReset = useCallback(() => {
+        setSearchText('');
+        setSearchDateFrom('');
+        setSearchDateTo('');
+        setSearchTimeFrom('');
+        setSearchTimeTo('');
+        setAppliedSearch(null);
+    }, []);
+
     const rows = useMemo(() => {
         const now = new Date();
-        const filtered = allBookings.filter((b) => {
+
+        // 1. Filtro future/passate
+        let filtered = allBookings.filter((b) => {
             if (!b.startISO) return false;
             const start = new Date(b.startISO);
             return filter === 'future' ? start >= now : start < now;
         });
+
+        // 2. Filtri di ricerca (solo quando applicati con "Cerca")
+        if (appliedSearch) {
+            const { searchText: text, searchDateFrom: df, searchDateTo: dt,
+                    searchTimeFrom: tf, searchTimeTo: tt } = appliedSearch;
+
+            if (text) {
+                const q = text.toLowerCase().trim();
+                filtered = filtered.filter((b) =>
+                    (b.name    || '').toLowerCase().includes(q) ||
+                    (b.surname || '').toLowerCase().includes(q) ||
+                    (b.email   || '').toLowerCase().includes(q)
+                );
+            }
+            if (df) filtered = filtered.filter((b) => b.startISO && b.startISO.split('T')[0] >= df);
+            if (dt) filtered = filtered.filter((b) => b.startISO && b.startISO.split('T')[0] <= dt);
+            if (tf) filtered = filtered.filter((b) => b.time && b.time >= tf);
+            if (tt) filtered = filtered.filter((b) => b.time && b.time <= tt);
+        }
+
+        // 3. Ordinamento
         return [...filtered].sort((a, b) => {
             let va = sortKey === 'date' ? (a.startISO ?? '') : (a[sortKey] ?? '');
             let vb = sortKey === 'date' ? (b.startISO ?? '') : (b[sortKey] ?? '');
             const cmp = va.localeCompare(vb, 'it', { numeric: true, sensitivity: 'base' });
             return sortDir === 'asc' ? cmp : -cmp;
         });
-    }, [allBookings, filter, sortKey, sortDir]);
+    }, [allBookings, filter, sortKey, sortDir, appliedSearch]);
 
     const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const pageRows   = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <div className={style.tabContent}>
+
+            {/* ── Area ricerca ── */}
+            <div className={style.searchArea}>
+                {/* Riga 1: searchbar + date */}
+                <div className={style.searchRow}>
+                    <div className={style.searchField}>
+                        <label className={style.dateLabel}>Cerca per nome, cognome o email</label>
+                        <input
+                            type="text"
+                            className={style.dateInput}
+                            placeholder="Es. Mario Rossi"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                    </div>
+                    <div className={style.searchField}>
+                        <label className={style.dateLabel}>Data da</label>
+                        <input
+                            type="date"
+                            className={style.dateInput}
+                            value={searchDateFrom}
+                            onChange={(e) => setSearchDateFrom(e.target.value)}
+                        />
+                    </div>
+                    <div className={style.searchField}>
+                        <label className={style.dateLabel}>Data a</label>
+                        <input
+                            type="date"
+                            className={style.dateInput}
+                            value={searchDateTo}
+                            min={searchDateFrom || undefined}
+                            onChange={(e) => setSearchDateTo(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Riga 2: time range + bottoni */}
+                <div className={style.searchRow}>
+                    <div className={style.searchField}>
+                        <label className={style.dateLabel}>Dalle ore</label>
+                        <input
+                            type="time"
+                            className={style.dateInput}
+                            value={searchTimeFrom}
+                            onChange={(e) => setSearchTimeFrom(e.target.value)}
+                        />
+                    </div>
+                    <div className={style.searchField}>
+                        <label className={style.dateLabel}>Alle ore</label>
+                        <input
+                            type="time"
+                            className={style.dateInput}
+                            value={searchTimeTo}
+                            min={searchTimeFrom || undefined}
+                            onChange={(e) => setSearchTimeTo(e.target.value)}
+                        />
+                    </div>
+                    <div className={style.searchActions}>
+                        <button className={style.searchResetBtn} onClick={handleReset}>
+                            Reset
+                        </button>
+                        <button className={style.addBtn} onClick={handleSearch}>
+                            Cerca
+                        </button>
+                    </div>
+                </div>
+
+                {/* Badge risultati attivi */}
+                {appliedSearch && (
+                    <p className={style.searchResultNote}>
+                        {rows.length === 0
+                            ? 'Nessun risultato trovato per i filtri selezionati.'
+                            : `${rows.length} prenotazion${rows.length === 1 ? 'e' : 'i'} trovat${rows.length === 1 ? 'a' : 'e'}.`
+                        }
+                    </p>
+                )}
+            </div>
+
+            {/* ── Filtro future/passate ── */}
             <div className={style.bookingFilters}>
                 <button
                     className={`${style.filterBtn} ${filter === 'future' ? style.filterActive : ''}`}
@@ -951,7 +1077,7 @@ function SlotOverrideTab() {
                                 <button
                                     className={style.saveBtn}
                                     onClick={handleSave}
-                                    disabled={saving || slots.length === 0}
+                                    disabled={saving}
                                 >
                                     {saving
                                         ? <FontAwesomeIcon icon={faSpinner} spin />
