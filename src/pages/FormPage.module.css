@@ -420,16 +420,14 @@
         box-shadow: none;
     }
 
-    /* Sidebar → compact booking bar at top */
+    /* Sidebar → barra info compatta in cima */
     .imageForm {
         width: 100%;
         height: auto;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
+        flex-direction: column;    /* titolo + info separati su righe */
+        align-items: flex-start;
         padding: 1rem 1.25rem;
-        gap: 0.75rem;
+        gap: 0.6rem;
         background-size: cover;
     }
 
@@ -437,38 +435,45 @@
         padding: 0;
         font-size: 1rem;
         font-weight: 700;
-        white-space: nowrap;
     }
 
+    /* 3 info + "Cambia data" distribuiti uniformemente in riga */
     .bookingInfo {
         flex-direction: row;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 0.5rem;
         height: auto;
+        width: 100%;
     }
 
+    /* Ogni chip info: icona + testo affiancati, più leggibili */
     .bookingInfo div {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        gap: 0.1rem;
-        font-size: 0.7rem;
+        gap: 0.4rem;
+        font-size: 0.85rem;
     }
 
     .bookingInfo h3 {
-        font-size: 0.7rem;
+        font-size: 0.85rem;
         font-weight: 500;
+        white-space: nowrap;
     }
 
     .icon {
-        font-size: 0.95rem;
+        font-size: 1rem;
+        flex-shrink: 0;
     }
 
     .changeDate {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.7rem;
-        border-radius: 4px;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
         margin-top: 0;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
 
     /* Form area */
@@ -526,5 +531,15 @@
 
     .imageForm {
         padding: 0.75rem 1rem;
+    }
+
+    /* Su schermi molto stretti la riga bookingInfo può andare a capo */
+    .bookingInfo {
+        flex-wrap: wrap;
+        gap: 0.6rem;
+    }
+
+    .changeDate {
+        margin-left: auto; /* spingi il bottone a destra */
     }
 }

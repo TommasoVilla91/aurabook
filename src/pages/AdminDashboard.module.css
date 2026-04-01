@@ -6,6 +6,7 @@
     min-height: calc(100vh - 3rem);
     background-color: #f5f9f4;
     padding: 2rem 1rem 4rem;
+    overflow-x: hidden; /* evita overflow orizzontale globale */
 }
 
 .container {
@@ -14,6 +15,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+    min-width: 0; /* consente ai figli flex di restringersi */
 }
 
 /* ── Header ── */
@@ -76,6 +78,11 @@
     border-bottom-color: #5a7b56;
 }
 
+/* Il testo della tab — su desktop inline, su mobile vedi breakpoint */
+.tabLabel {
+    line-height: 1.25;
+}
+
 /* ── Tab content ── */
 .tabContent {
     display: flex;
@@ -127,6 +134,7 @@
 
 .dateInput {
     width: 100%;
+    min-width: 0; /* evita overflow nei flex container */
     padding: 0.55rem 0.85rem;
     font-size: 0.9rem;
     border: 1px solid #c8e0c4;
@@ -316,6 +324,21 @@
     font-weight: 500;
 }
 
+/* Toggle ricerca — visibile solo su mobile via @media */
+.searchToggleBtn {
+    display: none;
+}
+
+/* Pallino verde nel toggle quando i filtri sono attivi */
+.searchActiveDot {
+    width: 8px;
+    height: 8px;
+    background-color: #5a7b56;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
 /* ─────────────────────────────────────────────────────
    Tab Prenotazioni — filtri
    ───────────────────────────────────────────────────── */
@@ -477,6 +500,89 @@
 
 .pageCount {
     color: #888;
+}
+
+/* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — card grid (mobile only, desktop: display:none)
+   ───────────────────────────────────────────────────── */
+
+/* Su desktop nascosta: la tabella è la vista principale */
+.bookingCards {
+    display: none;
+}
+
+.bookingCard {
+    background: #fff;
+    border: 1px solid #d8eed5;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.bookingCard:hover {
+    background-color: #f4fbf2;
+    box-shadow: 0 3px 10px rgba(90, 123, 86, 0.12);
+}
+
+.bookingCard:active {
+    transform: scale(0.97);
+}
+
+.cardDate {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #5a7b56;
+    text-transform: capitalize;
+    letter-spacing: 0.03em;
+}
+
+.cardTime {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2d3a2b;
+    line-height: 1;
+}
+
+.cardName {
+    font-size: 0.875rem;
+    color: #555;
+    margin-top: 0.15rem;
+}
+
+/* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — dettaglio prenotazione (BookingDetailModal)
+   ───────────────────────────────────────────────────── */
+
+.detailList {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem 1rem;
+    font-size: 0.9rem;
+}
+
+.detailList dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #5a7b56;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    align-self: center;
+}
+
+.detailList dd {
+    margin: 0;
+    color: #2d3a2b;
+    word-break: break-word;
+}
+
+/* Classe per nascondere il testo "Aggiungi" su schermi stretti */
+.addBtnLabel {
+    /* visibile di default */
 }
 
 /* ─────────────────────────────────────────────────────
@@ -868,11 +974,93 @@
 }
 
 /* =====================================================
+   MOBILE  ≤ 768px — card prenotazioni + tab colonnate
+   ===================================================== */
+@media (max-width: 768px) {
+    /* Tab: 3 colonne uguali, icona sopra + testo sotto */
+    .tabs {
+        gap: 0;
+        overflow: visible;
+    }
+
+    .tab {
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 5px;
+        padding: 0.6rem 0.3rem 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 500;
+        text-align: center;
+        white-space: normal; /* permette il <br /> nel label */
+    }
+
+    .tabLabel {
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    /* Tabella desktop nascosta → sostituita dalle card */
+    .tableWrapper {
+        display: none;
+    }
+
+    /* Card grid: 2 colonne */
+    .bookingCards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.65rem;
+    }
+
+    /* Search area: nascosta di default su mobile, toggle la mostra */
+    .searchArea {
+        display: none;
+    }
+
+    .searchAreaOpen {
+        display: flex;
+    }
+
+    /* Toggle button search */
+    .searchToggleBtn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 0.6rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #5a7b56;
+        background: #fff;
+        border: 1px solid #c8e0c4;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.15s, border-color 0.15s;
+        text-align: left;
+    }
+
+    .searchToggleBtn:hover {
+        background-color: #f0f8ee;
+    }
+
+    /* Evidenzia il toggle quando ci sono filtri attivi */
+    .searchToggleBtnActive {
+        background-color: #f0f8ee;
+        border-color: #5a7b56;
+    }
+}
+
+/* =====================================================
    MOBILE  ≤ 600px
    ===================================================== */
 @media (max-width: 600px) {
     .page {
         padding: 1.25rem 0.75rem 3rem;
+    }
+
+    .container {
+        max-width: 100%;
     }
 
     .rangeFields {
@@ -889,16 +1077,6 @@
         justify-content: center;
     }
 
-    /* Tabella: riduci padding celle su mobile */
-    .th, .td {
-        padding: 0.5rem 0.6rem;
-        font-size: 0.8rem;
-    }
-
-    .container {
-        max-width: 100%;
-    }
-
     /* Form modale: 1 colonna su mobile */
     .modalFormGrid {
         grid-template-columns: 1fr;
@@ -906,7 +1084,7 @@
 
     .modal {
         max-width: 100%;
-        border-radius: 10px;
+        border-radius: 14px;
     }
 
     /* Search area: campi in colonna su mobile */
@@ -921,5 +1099,42 @@
 
     .searchActions {
         justify-content: flex-end;
+    }
+}
+
+/* =====================================================
+   MOBILE STRETTO  ≤ 480px
+   ===================================================== */
+@media (max-width: 480px) {
+    /* Card: 1 colonna su schermi molto stretti */
+    .bookingCards {
+        grid-template-columns: 1fr;
+    }
+
+    /* Bottone "+ Aggiungi" nella tab Orari:
+       su schermi molto stretti mostra solo l'icona "+" */
+    .addBtnLabel {
+        display: none;
+    }
+
+    .addSlotRow .addBtn {
+        padding: 0.55rem 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .addSlotRow {
+        align-items: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Modali: slide-up dal basso */
+    .modalOverlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
     }
 }

@@ -4,7 +4,7 @@ import {
     faUmbrellaBeach, faTrash, faPlus, faSpinner, faArrowRight,
     faCalendarDays, faSort, faSortUp, faSortDown,
     faChevronLeft, faChevronRight, faClock, faSliders,
-    faRotateLeft, faCheck, faPenToSquare,
+    faRotateLeft, faCheck, faPenToSquare, faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons';
 import style from './AdminDashboard.module.css';
 
@@ -57,21 +57,22 @@ function AdminDashboardPage() {
                         onClick={() => setActiveTab('ferie')}
                     >
                         <FontAwesomeIcon icon={faUmbrellaBeach} />
-                        Gestione permessi
+                        {/* Su mobile il testo va su 2 righe per stare nella colonna */}
+                        <span className={style.tabLabel}>Gestione<br />permessi</span>
                     </button>
                     <button
                         className={`${style.tab} ${activeTab === 'prenotazioni' ? style.tabActive : ''}`}
                         onClick={() => setActiveTab('prenotazioni')}
                     >
                         <FontAwesomeIcon icon={faCalendarDays} />
-                        Prenotazioni
+                        <span className={style.tabLabel}>Prenotazioni</span>
                     </button>
                     <button
                         className={`${style.tab} ${activeTab === 'orari' ? style.tabActive : ''}`}
                         onClick={() => setActiveTab('orari')}
                     >
                         <FontAwesomeIcon icon={faSliders} />
-                        Orari
+                        <span className={style.tabLabel}>Orari</span>
                     </button>
                 </div>
 
@@ -352,6 +353,7 @@ function PrenotazioniTab() {
     const [editingBooking, setEditingBooking]   = useState(null);
     const [deletingBooking, setDeletingBooking] = useState(null);
     const [alertMessage, setAlertMessage]       = useState(null);
+    const [detailBooking, setDetailBooking]     = useState(null); // modale dettaglio su mobile
 
     // ── Stato campi ricerca (non ancora applicati) ──
     const [searchText, setSearchText]         = useState('');
@@ -361,6 +363,7 @@ function PrenotazioniTab() {
     const [searchTimeTo, setSearchTimeTo]     = useState('');
     // ── Filtri applicati (aggiornati solo al click "Cerca") ──
     const [appliedSearch, setAppliedSearch]   = useState(null);
+    const [searchOpen, setSearchOpen]         = useState(false); // toggle area ricerca su mobile
 
     const fetchBookings = useCallback(async () => {
         setLoading(true);
@@ -411,6 +414,7 @@ function PrenotazioniTab() {
     // Gestori ricerca
     const handleSearch = useCallback(() => {
         setAppliedSearch({ searchText, searchDateFrom, searchDateTo, searchTimeFrom, searchTimeTo });
+        setSearchOpen(false); // collassa il pannello su mobile per mostrare i risultati
     }, [searchText, searchDateFrom, searchDateTo, searchTimeFrom, searchTimeTo]);
 
     const handleReset = useCallback(() => {
@@ -466,8 +470,18 @@ function PrenotazioniTab() {
     return (
         <div className={style.tabContent}>
 
+            {/* ── Toggle ricerca — visibile solo su mobile via CSS ── */}
+            <button
+                className={`${style.searchToggleBtn}${appliedSearch ? ` ${style.searchToggleBtnActive}` : ''}`}
+                onClick={() => setSearchOpen((o) => !o)}
+            >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+                <span>{searchOpen ? 'Nascondi filtri' : 'Cerca / Filtra'}</span>
+                {appliedSearch && <span className={style.searchActiveDot} />}
+            </button>
+
             {/* ── Area ricerca ── */}
-            <div className={style.searchArea}>
+            <div className={`${style.searchArea}${searchOpen ? ` ${style.searchAreaOpen}` : ''}`}>
                 {/* Riga 1: searchbar + date */}
                 <div className={style.searchRow}>
                     <div className={style.searchField}>
@@ -564,6 +578,22 @@ function PrenotazioniTab() {
                 <p className={style.emptyMsg}>Nessuna prenotazione trovata.</p>
             ) : (
                 <>
+                    {/* ── Vista card — visibile solo su mobile via CSS ── */}
+                    <div className={style.bookingCards}>
+                        {pageRows.map((b) => (
+                            <div
+                                key={b.id}
+                                className={style.bookingCard}
+                                onClick={() => setDetailBooking(b)}
+                            >
+                                <span className={style.cardDate}>{b.date}</span>
+                                <span className={style.cardTime}>{b.time}</span>
+                                <span className={style.cardName}>{b.name} {b.surname}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ── Vista tabella — visibile solo su desktop via CSS ── */}
                     <div className={style.tableWrapper}>
                         <table className={style.table}>
                             <thead>
@@ -582,7 +612,11 @@ function PrenotazioniTab() {
                             </thead>
                             <tbody>
                                 {pageRows.map((b) => (
-                                    <tr key={b.id} className={style.tr}>
+                                    <tr
+                                        key={b.id}
+                                        className={style.tr}
+                                        onClick={() => setDetailBooking(b)}
+                                    >
                                         <td className={style.td}>{b.date}</td>
                                         <td className={style.td}>{b.time}</td>
                                         <td className={style.td}>{b.name}</td>
@@ -597,7 +631,8 @@ function PrenotazioniTab() {
                                                 ? <a href={`mailto:${b.email}`} className={style.contactLink}>{b.email}</a>
                                                 : '—'}
                                         </td>
-                                        <td className={style.td}>
+                                        {/* stopPropagation: evita che il click apra il dettaglio quando si preme modifica/elimina */}
+                                        <td className={style.td} onClick={(e) => e.stopPropagation()}>
                                             <div className={style.actionBtns}>
                                                 <button
                                                     className={`${style.actionBtn} ${style.actionBtnEdit}`}
@@ -669,6 +704,16 @@ function PrenotazioniTab() {
             {alertMessage && (
                 <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
             )}
+
+            {/* Modale dettaglio — si apre cliccando la riga (utile su mobile) */}
+            {detailBooking && (
+                <BookingDetailModal
+                    booking={detailBooking}
+                    onClose={() => setDetailBooking(null)}
+                    onEdit={(b) => { setDetailBooking(null); setEditingBooking(b); }}
+                    onDelete={(b) => { setDetailBooking(null); setDeletingBooking(b); }}
+                />
+            )}
         </div>
     );
 }
@@ -687,6 +732,51 @@ function AlertModal({ message, onClose }) {
                 </div>
                 <div className={style.modalFooter}>
                     <button className={style.btnPrimary} onClick={onClose}>OK</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// BookingDetailModal — mostra tutti i dettagli di una prenotazione
+// Principale utilità: su mobile dove le colonne telefono/email/azioni
+// sono nascoste via CSS e l'utente tocca la riga per aprire questo modale.
+// ─────────────────────────────────────────────────────────────
+
+function BookingDetailModal({ booking, onClose, onEdit, onDelete }) {
+    return (
+        <div className={style.modalOverlay} onClick={onClose}>
+            <div className={style.modal} onClick={(e) => e.stopPropagation()}>
+                <h3 className={style.modalTitle}>{booking.name} {booking.surname}</h3>
+                <div className={style.modalBody}>
+                    <dl className={style.detailList}>
+                        <dt>Data</dt>
+                        <dd>{booking.date}</dd>
+                        <dt>Orario</dt>
+                        <dd>{booking.time}</dd>
+                        <dt>Telefono</dt>
+                        <dd>
+                            {booking.phone !== '—'
+                                ? <a href={`tel:${booking.phone}`} className={style.contactLink}>{booking.phone}</a>
+                                : '—'}
+                        </dd>
+                        <dt>Email</dt>
+                        <dd>
+                            {booking.email !== '—'
+                                ? <a href={`mailto:${booking.email}`} className={style.contactLink}>{booking.email}</a>
+                                : '—'}
+                        </dd>
+                    </dl>
+                </div>
+                <div className={style.modalFooter}>
+                    <button className={style.btnSecondary} onClick={onClose}>Chiudi</button>
+                    <button className={style.btnPrimary} onClick={() => onEdit(booking)}>
+                        <FontAwesomeIcon icon={faPenToSquare} /> Modifica
+                    </button>
+                    <button className={style.btnDanger} onClick={() => onDelete(booking)}>
+                        <FontAwesomeIcon icon={faTrash} /> Elimina
+                    </button>
                 </div>
             </div>
         </div>
@@ -1067,8 +1157,11 @@ function SlotOverrideTab() {
                                     className={style.addBtn}
                                     onClick={handleAddSlot}
                                     disabled={!newSlot}
+                                    title="Aggiungi orario"
                                 >
-                                    <FontAwesomeIcon icon={faPlus} /> Aggiungi
+                                    <FontAwesomeIcon icon={faPlus} />
+                                    {/* Su mobile stretto il testo viene nascosto via CSS */}
+                                    <span className={style.addBtnLabel}> Aggiungi</span>
                                 </button>
                             </div>
 

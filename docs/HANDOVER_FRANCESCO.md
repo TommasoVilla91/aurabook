@@ -179,6 +179,44 @@ Il token OAuth2 di Gmail scade periodicamente:
 
 ## 5. Google Calendar & Service Account
 
+### Google Calendar
+Francesco deve condividere il suo calendario con l'email del Service Account:
+
+1. Google Calendar → tre puntini sul suo calendario → **"Impostazioni e condivisione"**
+2. **"Condividi con persone specifiche"** → aggiunge:
+
+```
+calendar-reader@prova-ee5bd.iam.gserviceaccount.com
+```
+con permesso **"Apportare modifiche agli eventi"**
+
+3. Nella stessa pagina, sezione "Integra calendario", copia il suo **Calendar ID** (di solito è il suo indirizzo Gmail o una stringa __xxx@group.calendar.google.com__) e te lo manda
+
+**Tu su Vercel**: aggiorna __GOOGLE_CALENDAR_ID__ con quel valore. Attualmente è impostato su __tommasovilla91@gmail.com__ (il tuo), quindi va cambiato.
+
+### EmailJS (Francesco riceve la notifica per ogni prenotazione)
+L'app usa EmailJS **lato browser** per notificare Francesco ad ogni prenotazione nuova. Le credenziali attuali sono di test.
+
+1. Va su **emailjs.com** → crea account gratuito (200 email/mese, sufficiente)
+2. **Email Services** → Add New Service → **Gmail** → si autentica → copia il **Service ID**
+3. **Email Templates** → Create New Template → imposta:
+  - **To**: __sartifrancescomario@gmail.com__
+  - **Subject**: __Nuova prenotazione — {{name}} {{surname}}__
+  - **Body**: usa le variabili __{{name}}, {{surname}}, {{phone}}, {{email}}, {{birthdate}}, {{booking_date}}, {{booking_time}}, {{message}}__
+  - Copia il **Template ID**
+4. **Account** → **API Keys** → copia la **Public Key**
+
+**Tu su Vercel**: aggiorna __VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY__. Sono variabili __VITE_*__ quindi richiedono un redeploy dopo la modifica.
+
+### Gmail App Password (Nodemailer invia la conferma al cliente)
+Il backend usa Gmail SMTP per mandare la conferma email al cliente. Serve una "App Password" (non la password normale di Gmail).
+
+1. Attiva la Verifica in 2 passaggi su sartifrancescomario@gmail.com (obbligatoria)
+2. Vai su myaccount.google.com/apppasswords → crea password per "AuraBook"
+3. Google genera una stringa da 16 caratteri → copiala senza spazi
+
+**Tu su Vercel**: aggiorna __GMAIL_APP_PASSWORD__ con quella stringa.
+
 ### 5.1 Service Account
 
 Il Service Account permette all'API Vercel di creare eventi nel calendario di Francesco.

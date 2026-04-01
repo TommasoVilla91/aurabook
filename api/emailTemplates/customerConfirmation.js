@@ -16,8 +16,8 @@
  */
 
 // ── Dati dello studio (modificare prima del go-live) ─────────────────
-const STUDIO_NAME     = 'Francesco · Massoterapista';
-const THERAPIST_NAME  = 'Francesco';
+const STUDIO_NAME     = 'Studio Agape';
+const THERAPIST_NAME  = 'Francesco Sarti';
 const STUDIO_ADDRESS  = 'Via fratelli Bronzetti, 9 – Milano';
 // ─────────────────────────────────────────────────────────────────────
 
