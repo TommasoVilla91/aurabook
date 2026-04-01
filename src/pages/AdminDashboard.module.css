@@ -115,6 +115,7 @@
     flex-direction: column;
     gap: 0.3rem;
     flex: 1;
+    min-width: 0; /* impedisce ai flex item di overflow oltre il contenitore */
 }
 
 .dateLabel {
@@ -912,6 +913,7 @@
 
 .addSlotRow .dateField {
     max-width: 200px;
+    min-width: 0;
 }
 
 .overrideActions {
@@ -1085,6 +1087,20 @@
     .modal {
         max-width: 100%;
         border-radius: 14px;
+    }
+
+    /* addSlotRow: rimuovi max-width su mobile — il flex si distribuisce naturalmente */
+    .addSlotRow {
+        flex-wrap: nowrap;
+    }
+
+    .addSlotRow .dateField {
+        max-width: none;
+        flex: 1;
+    }
+
+    .addSlotRow .addBtn {
+        flex-shrink: 0;
     }
 
     /* Search area: campi in colonna su mobile */
