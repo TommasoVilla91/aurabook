@@ -1,11 +1,11 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
 
 const dailyAvailabilityRules = {
-  1: { start: '15:30', end: '19:30' },
-  2: { start: '08:00', end: '19:30' },
-  3: { start: '08:00', end: '12:00' },
-  4: { start: '08:00', end: '12:00' },
-  5: { start: '08:00', end: '19:30' },
+  1: { start: '15:30', end: '20:30' },
+  2: { start: '13:00', end: '20:00' },
+  3: { start: '08:00', end: '11:00' },
+  4: { start: '13:00', end: '20:00' },
+  5: [{ start: '08:00', end: '09:00' }, { start: '13:00', end: '20:00' }],
   6: { start: '09:00', end: '12:00' },
   0: null,
 };
@@ -25,14 +25,9 @@ const getItalianUTCOffsetHours = (dateString) => {
   return 0;
 };
 
-const generateBaseTimeSlots = (date) => {
-  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay();
-  const availability = dailyAvailabilityRules[dayOfWeek];
-  if (!availability) return [];
-
-  const italianOffsetHours = getItalianUTCOffsetHours(date);
-  const [startHour, startMinute] = availability.start.split(':').map(Number);
-  const [endHour, endMinute] = availability.end.split(':').map(Number);
+const generateSlotsForRange = (range, date, italianOffsetHours) => {
+  const [startHour, startMinute] = range.start.split(':').map(Number);
+  const [endHour, endMinute] = range.end.split(':').map(Number);
   const [year, month, day] = date.split('-').map(Number);
 
   let currentTime = new Date(Date.UTC(year, month - 1, day, startHour - italianOffsetHours, startMinute, 0));
@@ -46,6 +41,16 @@ const generateBaseTimeSlots = (date) => {
     currentTime.setUTCMinutes(currentTime.getUTCMinutes() + 60);
   }
   return slots;
+};
+
+const generateBaseTimeSlots = (date) => {
+  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay();
+  const availability = dailyAvailabilityRules[dayOfWeek];
+  if (!availability) return [];
+
+  const italianOffsetHours = getItalianUTCOffsetHours(date);
+  const ranges = Array.isArray(availability) ? availability : [availability];
+  return ranges.flatMap((range) => generateSlotsForRange(range, date, italianOffsetHours));
 };
 
 const filterPastSlots = (slots, dateString) => {
@@ -95,6 +100,30 @@ export default async function handler(req, res) {
       (e) => !e.start?.dateTime && e.extendedProperties?.private?.aurabookType === 'vacation'
     );
     if (isVacationDay) return res.status(200).json({ slots: [] });
+
+    // Se esiste un override slot per questo giorno → usa quegli slot al posto di quelli
+    // generati da dailyAvailabilityRules. Gli slot dell'override sono in formato italiano
+    // (es. "09:00") quindi li restituiamo direttamente, applicando solo filterPastSlots.
+    const overrideEvent = busyEvents.find(
+      (e) => !e.start?.dateTime && e.extendedProperties?.private?.aurabookType === 'slot-override'
+    );
+    if (overrideEvent) {
+      let overrideSlots = JSON.parse(overrideEvent.extendedProperties.private.slots || '[]');
+      // filterPastSlots si aspetta slot in UTC, ma gli override sono in italiano.
+      // Convertiamo sottraendo l'offset per il confronto con now (che è UTC).
+      const italianOff = getItalianUTCOffsetHours(dateString);
+      const overrideSlotsUTC = overrideSlots.map((s) => {
+        const [h, m] = s.split(':').map(Number);
+        return `${String(h - italianOff).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      });
+      const filteredUTC = filterPastSlots(overrideSlotsUTC, dateString);
+      // Riconverte in italiano
+      const filteredIT = filteredUTC.map((s) => {
+        const [h, m] = s.split(':').map(Number);
+        return `${String(h + italianOff).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      });
+      return res.status(200).json({ slots: filteredIT });
+    }
 
     const finalSlots = availableSlots.filter((slotTime) => {
       const slotStart = new Date(`${dateString}T${slotTime}:00Z`);

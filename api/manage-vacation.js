@@ -1,6 +1,6 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
 
-// Aggiunge 1 giorno a una stringa YYYY-MM-DD (per la fine esclusiva GCal)
+// Aggiunge 1 giorno a una stringa YYYY-MM-DD (per la fine esclusiva GCal sugli all-day)
 function addOneDay(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const next = new Date(Date.UTC(y, m - 1, d + 1));
@@ -19,71 +19,134 @@ export default async function handler(req, res) {
   try {
     const calendar = await getAuthorizedCalendar();
 
-    // ── GET: lista ferie future ─────────────────────────────────────────────
+    // ── GET: lista ferie + blocchi orari futuri ────────────────────────────
     if (req.method === 'GET') {
-      const response = await calendar.events.list({
-        calendarId,
-        timeMin: new Date().toISOString(),
-        privateExtendedProperty: 'aurabookType=vacation',
-        singleEvents: false,   // non espandere: vogliamo l'evento unico del range
-        orderBy: 'updated',
-        showDeleted: false,
-      });
+      // Recupera sia vacation (all-day) che partial-block (timed) con due query separate
+      // perché GCal non supporta OR su privateExtendedProperty
+      const [vacRes, blockRes] = await Promise.all([
+        calendar.events.list({
+          calendarId,
+          timeMin: new Date().toISOString(),
+          privateExtendedProperty: 'aurabookType=vacation',
+          singleEvents: false,
+          orderBy: 'updated',
+          showDeleted: false,
+        }),
+        calendar.events.list({
+          calendarId,
+          timeMin: new Date().toISOString(),
+          privateExtendedProperty: 'aurabookType=partial-block',
+          singleEvents: true,
+          orderBy: 'startTime',
+          showDeleted: false,
+        }),
+      ]);
 
-      const vacations = (response.data.items || [])
-        .filter((e) => e.start?.date)  // solo all-day
+      // Mappa ferie all-day
+      const vacations = (vacRes.data.items || [])
+        .filter((e) => e.start?.date)
         .sort((a, b) => a.start.date.localeCompare(b.start.date))
         .map((e) => {
           const dateFrom = e.start.date;
-          // GCal end è esclusivo: sottraiamo 1 giorno per il dateTo reale
           const [y, m, d] = e.end.date.split('-').map(Number);
           const dateTo = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().split('T')[0];
-          return { id: e.id, dateFrom, dateTo };
+          return { id: e.id, type: 'vacation', dateFrom, dateTo };
         });
 
-      return res.status(200).json({ vacations });
+      // Mappa blocchi orari parziali (timed events)
+      const partialBlocks = (blockRes.data.items || [])
+        .filter((e) => e.start?.dateTime)
+        .map((e) => {
+          // Estrae la data e gli orari dal dateTime (formato ISO con offset)
+          const startDT = new Date(e.start.dateTime);
+          const endDT   = new Date(e.end.dateTime);
+          const dateFrom = e.start.dateTime.split('T')[0];
+          const timeFrom = startDT.toLocaleTimeString('it-IT', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
+          });
+          const timeTo = endDT.toLocaleTimeString('it-IT', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
+          });
+          return { id: e.id, type: 'partial-block', dateFrom, dateTo: dateFrom, timeFrom, timeTo };
+        });
+
+      // Unisce e ordina per data
+      const all = [...vacations, ...partialBlocks]
+        .sort((a, b) => a.dateFrom.localeCompare(b.dateFrom));
+
+      return res.status(200).json({ vacations: all });
     }
 
-    // ── POST: aggiungi range di ferie ───────────────────────────────────────
+    // ── POST: aggiungi ferie o blocco orario ────────────────────────────────
     if (req.method === 'POST') {
-      const { dateFrom, dateTo } = req.body;
+      const { dateFrom, dateTo, timeFrom, timeTo } = req.body;
       if (!dateFrom) return res.status(400).json({ error: 'Missing dateFrom parameter' });
 
-      const startDate = dateFrom;
-      // Se dateTo non è specificato o è uguale a dateFrom → singolo giorno
-      const endDate = addOneDay(dateTo && dateTo >= dateFrom ? dateTo : dateFrom);
+      let requestBody;
 
-      // Label per il summary del calendario
-      const isSingleDay = endDate === addOneDay(dateFrom);
-      const summary = isSingleDay ? '🌴 Ferie' : `🌴 Ferie (${dateFrom} → ${dateTo})`;
+      if (timeFrom && timeTo) {
+        // ── Blocco orario parziale (timed event) ──────────────────────────
+        // GCal interpreta dateTime senza offset nel fuso timeZone specificato
+        requestBody = {
+          summary: `🕐 Blocco ${timeFrom}–${timeTo}`,
+          start: { dateTime: `${dateFrom}T${timeFrom}:00`, timeZone: 'Europe/Rome' },
+          end:   { dateTime: `${dateFrom}T${timeTo}:00`,   timeZone: 'Europe/Rome' },
+          extendedProperties: { private: { aurabookType: 'partial-block' } },
+        };
 
-      const created = await calendar.events.insert({
-        calendarId,
-        requestBody: {
+        const created = await calendar.events.insert({ calendarId, requestBody });
+
+        // Rilegge gli orari dall'evento creato (GCal restituisce con offset)
+        const startDT = new Date(created.data.start.dateTime);
+        const endDT   = new Date(created.data.end.dateTime);
+        const tfmt = (dt) => dt.toLocaleTimeString('it-IT', {
+          hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
+        });
+
+        return res.status(200).json({
+          success: true,
+          vacation: {
+            id: created.data.id,
+            type: 'partial-block',
+            dateFrom,
+            dateTo: dateFrom,
+            timeFrom: tfmt(startDT),
+            timeTo:   tfmt(endDT),
+          },
+        });
+
+      } else {
+        // ── Ferie intere (all-day) ─────────────────────────────────────────
+        const startDate = dateFrom;
+        const endDate   = addOneDay(dateTo && dateTo >= dateFrom ? dateTo : dateFrom);
+        const isSingleDay = endDate === addOneDay(dateFrom);
+        const summary  = isSingleDay ? '🌴 Ferie' : `🌴 Ferie (${dateFrom} → ${dateTo})`;
+
+        requestBody = {
           summary,
           start: { date: startDate },
           end:   { date: endDate },
-          extendedProperties: {
-            private: { aurabookType: 'vacation' },
+          extendedProperties: { private: { aurabookType: 'vacation' } },
+        };
+
+        const created = await calendar.events.insert({ calendarId, requestBody });
+
+        const [y, m, d] = endDate.split('-').map(Number);
+        const realDateTo = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().split('T')[0];
+
+        return res.status(200).json({
+          success: true,
+          vacation: {
+            id: created.data.id,
+            type: 'vacation',
+            dateFrom: startDate,
+            dateTo: realDateTo,
           },
-        },
-      });
-
-      // dateTo reale = endDate - 1 giorno
-      const [y, m, d] = endDate.split('-').map(Number);
-      const realDateTo = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().split('T')[0];
-
-      return res.status(200).json({
-        success: true,
-        vacation: {
-          id: created.data.id,
-          dateFrom: startDate,
-          dateTo: realDateTo,
-        },
-      });
+        });
+      }
     }
 
-    // ── DELETE: rimuovi range di ferie per eventId ──────────────────────────
+    // ── DELETE: rimuovi per eventId ─────────────────────────────────────────
     if (req.method === 'DELETE') {
       const { eventId } = req.body;
       if (!eventId) return res.status(400).json({ error: 'Missing eventId parameter' });

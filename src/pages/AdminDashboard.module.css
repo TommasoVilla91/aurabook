@@ -414,6 +414,175 @@
     color: #888;
 }
 
+/* ─────────────────────────────────────────────────────
+   FerieTab — blocco orario parziale
+   ───────────────────────────────────────────────────── */
+
+.partialToggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #3a5537;
+    cursor: pointer;
+    user-select: none;
+}
+
+.partialToggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #5a7b56;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Badge tipo nella lista ferie */
+.typeBadge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.badgeVacation {
+    background-color: #e8f5e4;
+    color: #4a6e46;
+    border: 1px solid #c8e0c4;
+}
+
+.badgePartial {
+    background-color: #e8f0fb;
+    color: #3a5a9e;
+    border: 1px solid #c0cfee;
+}
+
+/* ─────────────────────────────────────────────────────
+   Tab Orari — slot override
+   ───────────────────────────────────────────────────── */
+
+.overrideDateRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    max-width: 280px;
+}
+
+.overrideBanner {
+    font-size: 0.85rem;
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    line-height: 1.5;
+}
+
+.bannerStandard {
+    background-color: #f4fbf2;
+    border: 1px solid #c8e0c4;
+    color: #4a6e46;
+}
+
+.bannerOverride {
+    background-color: #fff8e8;
+    border: 1px solid #e8d8a0;
+    color: #7a5c10;
+}
+
+.slotOverrideList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.slotOverrideRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid #d8eed5;
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+}
+
+.slotOverrideTime {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2d3a2b;
+    font-variant-numeric: tabular-nums;
+}
+
+.addSlotRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.addSlotRow .dateField {
+    max-width: 200px;
+}
+
+.overrideActions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-top: 0.25rem;
+}
+
+.saveBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.55rem 1.3rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f7ffed;
+    background-color: #5a7b56;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.18s;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background-color: #435a40;
+}
+
+.saveBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.resetBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #7a5a10;
+    background: #fff;
+    border: 1px solid #e8d8a0;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.18s, border-color 0.18s;
+}
+
+.resetBtn:hover:not(:disabled) {
+    background-color: #fff8e8;
+    border-color: #c8a830;
+}
+
+.resetBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* =====================================================
    MOBILE  ≤ 600px
    ===================================================== */

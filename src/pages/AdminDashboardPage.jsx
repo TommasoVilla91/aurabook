@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faUmbrellaBeach, faTrash, faPlus, faSpinner, faArrowRight,
     faCalendarDays, faSort, faSortUp, faSortDown,
-    faChevronLeft, faChevronRight,
+    faChevronLeft, faChevronRight, faClock, faSliders,
+    faRotateLeft, faCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import style from './AdminDashboard.module.css';
 
@@ -56,7 +57,7 @@ function AdminDashboardPage() {
                         onClick={() => setActiveTab('ferie')}
                     >
                         <FontAwesomeIcon icon={faUmbrellaBeach} />
-                        Gestione ferie
+                        Gestione permessi
                     </button>
                     <button
                         className={`${style.tab} ${activeTab === 'prenotazioni' ? style.tabActive : ''}`}
@@ -65,10 +66,18 @@ function AdminDashboardPage() {
                         <FontAwesomeIcon icon={faCalendarDays} />
                         Prenotazioni
                     </button>
+                    <button
+                        className={`${style.tab} ${activeTab === 'orari' ? style.tabActive : ''}`}
+                        onClick={() => setActiveTab('orari')}
+                    >
+                        <FontAwesomeIcon icon={faSliders} />
+                        Orari
+                    </button>
                 </div>
 
                 {activeTab === 'ferie'        && <FerieTab />}
                 {activeTab === 'prenotazioni' && <PrenotazioniTab />}
+                {activeTab === 'orari'        && <SlotOverrideTab />}
 
             </div>
         </div>
@@ -76,65 +85,87 @@ function AdminDashboardPage() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tab Ferie
+// Tab Permessi / Ferie
 // ─────────────────────────────────────────────────────────────
 
 function FerieTab() {
-    const [vacations, setVacations]   = useState([]);
+    const [vacations, setVacations]     = useState([]);
     const [loadingList, setLoadingList] = useState(true);
-    const [dateFrom, setDateFrom]     = useState('');
-    const [dateTo, setDateTo]         = useState('');
-    const [adding, setAdding]         = useState(false);
-    const [removingId, setRemovingId] = useState(null);
-    const [error, setError]           = useState(null);
+    const [dateFrom, setDateFrom]       = useState('');
+    const [dateTo, setDateTo]           = useState('');
+    const [isPartial, setIsPartial]     = useState(false); // checkbox "Solo fascia oraria"
+    const [timeFrom, setTimeFrom]       = useState('');
+    const [timeTo, setTimeTo]           = useState('');
+    const [adding, setAdding]           = useState(false);
+    const [removingId, setRemovingId]   = useState(null);
+    const [error, setError]             = useState(null);
 
-    const fetchVacations = async () => {
+    const fetchVacations = useCallback(async () => {
         setLoadingList(true);
         setError(null);
         try {
             const res  = await fetch('/api/manage-vacation');
             const data = await res.json();
-            if (!res.ok) throw new Error(data.details || data.error || 'Errore caricamento ferie');
+            if (!res.ok) throw new Error(data.details || data.error || 'Errore caricamento');
             setVacations(data.vacations);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoadingList(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchVacations(); }, []);
+    useEffect(() => { fetchVacations(); }, [fetchVacations]);
 
-    const handleDateFromChange = (val) => {
+    const handleDateFromChange = useCallback((val) => {
         setDateFrom(val);
         if (dateTo && dateTo < val) setDateTo('');
-    };
+    }, [dateTo]);
 
-    const handleAdd = async () => {
-        if (!dateFrom) return;
+    const handlePartialToggle = useCallback((e) => {
+        setIsPartial(e.target.checked);
+        // Reset dei campi non rilevanti quando si cambia modalità
+        setDateTo('');
+        setTimeFrom('');
+        setTimeTo('');
+    }, []);
+
+    const isAddDisabled = useMemo(() => {
+        if (!dateFrom || adding) return true;
+        if (isPartial && (!timeFrom || !timeTo)) return true;
+        if (isPartial && timeFrom >= timeTo) return true;
+        return false;
+    }, [dateFrom, adding, isPartial, timeFrom, timeTo]);
+
+    const handleAdd = useCallback(async () => {
+        if (isAddDisabled) return;
         setAdding(true);
         setError(null);
         try {
+            const body = isPartial
+                ? { dateFrom, timeFrom, timeTo }
+                : { dateFrom, dateTo: dateTo || dateFrom };
+
             const res  = await fetch('/api/manage-vacation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dateFrom, dateTo: dateTo || dateFrom }),
+                body: JSON.stringify(body),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.details || data.error || 'Errore aggiunta ferie');
+            if (!res.ok) throw new Error(data.details || data.error || 'Errore aggiunta');
             setVacations((prev) =>
                 [...prev, data.vacation].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom))
             );
-            setDateFrom('');
-            setDateTo('');
+            setDateFrom(''); setDateTo(''); setTimeFrom(''); setTimeTo('');
+            setIsPartial(false);
         } catch (err) {
             setError(err.message);
         } finally {
             setAdding(false);
         }
-    };
+    }, [isAddDisabled, isPartial, dateFrom, dateTo, timeFrom, timeTo]);
 
-    const handleRemove = async (eventId) => {
+    const handleRemove = useCallback(async (eventId) => {
         setRemovingId(eventId);
         setError(null);
         try {
@@ -144,25 +175,41 @@ function FerieTab() {
                 body: JSON.stringify({ eventId }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Errore rimozione ferie');
+            if (!res.ok) throw new Error(data.error || 'Errore rimozione');
             setVacations((prev) => prev.filter((v) => v.id !== eventId));
         } catch (err) {
             setError(err.message);
         } finally {
             setRemovingId(null);
         }
-    };
+    }, []);
 
     return (
         <div className={style.tabContent}>
             <p className={style.tabDescription}>
-                Aggiungi i giorni in cui non sei disponibile. Puoi selezionare un giorno singolo o un intervallo di date.
+                Aggiungi i giorni o le fasce orarie in cui non sei disponibile.
+                I clienti non potranno prenotare in quei periodi.
             </p>
 
+            {/* Form aggiunta */}
             <div className={style.rangeForm}>
+
+                {/* Checkbox modalità parziale */}
+                <label className={style.partialToggle}>
+                    <input
+                        type="checkbox"
+                        checked={isPartial}
+                        onChange={handlePartialToggle}
+                    />
+                    <span>Solo fascia oraria (un giorno, orari specifici)</span>
+                </label>
+
                 <div className={style.rangeFields}>
+                    {/* Campi data */}
                     <div className={style.dateField}>
-                        <label className={style.dateLabel}>Dal</label>
+                        <label className={style.dateLabel}>
+                            {isPartial ? 'Giorno' : 'Dal'}
+                        </label>
                         <input
                             type="date"
                             className={style.dateInput}
@@ -171,24 +218,56 @@ function FerieTab() {
                             onChange={(e) => handleDateFromChange(e.target.value)}
                         />
                     </div>
-                    <FontAwesomeIcon icon={faArrowRight} className={style.rangeArrow} />
-                    <div className={style.dateField}>
-                        <label className={style.dateLabel}>Al (opzionale)</label>
-                        <input
-                            type="date"
-                            className={style.dateInput}
-                            value={dateTo}
-                            min={dateFrom || todayStr()}
-                            disabled={!dateFrom}
-                            onChange={(e) => setDateTo(e.target.value)}
-                        />
-                    </div>
+
+                    {/* "Al" visibile solo in modalità giornate intere */}
+                    {!isPartial && (
+                        <>
+                            <FontAwesomeIcon icon={faArrowRight} className={style.rangeArrow} />
+                            <div className={style.dateField}>
+                                <label className={style.dateLabel}>Al (opzionale)</label>
+                                <input
+                                    type="date"
+                                    className={style.dateInput}
+                                    value={dateTo}
+                                    min={dateFrom || todayStr()}
+                                    disabled={!dateFrom}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* Orari — visibili solo in modalità parziale */}
+                    {isPartial && (
+                        <>
+                            <FontAwesomeIcon icon={faClock} className={style.rangeArrow} />
+                            <div className={style.dateField}>
+                                <label className={style.dateLabel}>Dalle</label>
+                                <input
+                                    type="time"
+                                    className={style.dateInput}
+                                    value={timeFrom}
+                                    disabled={!dateFrom}
+                                    onChange={(e) => setTimeFrom(e.target.value)}
+                                />
+                            </div>
+                            <FontAwesomeIcon icon={faArrowRight} className={style.rangeArrow} />
+                            <div className={style.dateField}>
+                                <label className={style.dateLabel}>Alle</label>
+                                <input
+                                    type="time"
+                                    className={style.dateInput}
+                                    value={timeTo}
+                                    disabled={!timeFrom}
+                                    min={timeFrom}
+                                    onChange={(e) => setTimeTo(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
-                <button
-                    className={style.addBtn}
-                    onClick={handleAdd}
-                    disabled={!dateFrom || adding}
-                >
+
+                <button className={style.addBtn} onClick={handleAdd} disabled={isAddDisabled}>
                     {adding
                         ? <FontAwesomeIcon icon={faSpinner} spin />
                         : <><FontAwesomeIcon icon={faPlus} /> Aggiungi</>
@@ -198,16 +277,29 @@ function FerieTab() {
 
             {error && <p className={style.errorMsg}>{error}</p>}
 
+            {/* Lista */}
             <div className={style.vacationList}>
                 {loadingList ? (
                     <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento…</p>
                 ) : vacations.length === 0 ? (
-                    <p className={style.emptyMsg}>Nessun periodo di ferie programmato.</p>
+                    <p className={style.emptyMsg}>Nessun periodo o blocco orario programmato.</p>
                 ) : (
                     vacations.map((v) => (
                         <div key={v.id} className={style.vacationRow}>
-                            <FontAwesomeIcon icon={faUmbrellaBeach} className={style.vacationIcon} />
-                            <span className={style.vacationDate}>{formatRangeIT(v.dateFrom, v.dateTo)}</span>
+                            <FontAwesomeIcon
+                                icon={v.type === 'partial-block' ? faClock : faUmbrellaBeach}
+                                className={style.vacationIcon}
+                            />
+                            <span className={style.vacationDate}>
+                                {v.type === 'partial-block'
+                                    ? `${formatDateIT(v.dateFrom)} · ${v.timeFrom}–${v.timeTo}`
+                                    : formatRangeIT(v.dateFrom, v.dateTo)
+                                }
+                            </span>
+                            {/* Badge tipo */}
+                            <span className={`${style.typeBadge} ${v.type === 'partial-block' ? style.badgePartial : style.badgeVacation}`}>
+                                {v.type === 'partial-block' ? 'Orario' : 'Ferie'}
+                            </span>
                             <button
                                 className={style.removeBtn}
                                 onClick={() => handleRemove(v.id)}
@@ -231,13 +323,12 @@ function FerieTab() {
 // Tab Prenotazioni
 // ─────────────────────────────────────────────────────────────
 
-// Colonne della tabella — definite fuori dal componente per stabilità referenziale
 const COLUMNS = [
     { key: 'date',    label: 'Data',     sortType: 'date'   },
     { key: 'time',    label: 'Orario',   sortType: 'string' },
     { key: 'name',    label: 'Nome',     sortType: 'string' },
     { key: 'surname', label: 'Cognome',  sortType: 'string' },
-    { key: 'phone',   label: 'Telefono', sortType: null     },  // non ordinabile
+    { key: 'phone',   label: 'Telefono', sortType: null     },
     { key: 'email',   label: 'Email',    sortType: 'string' },
 ];
 
@@ -253,7 +344,7 @@ function PrenotazioniTab() {
     const [allBookings, setAllBookings] = useState([]);
     const [loading, setLoading]         = useState(true);
     const [error, setError]             = useState(null);
-    const [filter, setFilter]           = useState('future');   // 'future' | 'past'
+    const [filter, setFilter]           = useState('future');
     const [sortKey, setSortKey]         = useState('date');
     const [sortDir, setSortDir]         = useState('asc');
     const [page, setPage]               = useState(1);
@@ -274,26 +365,18 @@ function PrenotazioniTab() {
     }, []);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
-
-    // Resetta la pagina quando cambia filtro o ordinamento
     useEffect(() => { setPage(1); }, [filter, sortKey, sortDir]);
 
-    // Gestione click intestazione colonna.
-    // NOTA: non usare setSortKey con updater annidato — chiamare due setState dentro
-    // un updater causa batch inconsistente. Leggiamo sortKey direttamente dalla closure.
     const handleSort = useCallback((col) => {
         if (col.sortType === null) return;
         if (sortKey === col.key) {
-            // stessa colonna → inverte direzione
             setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
         } else {
-            // colonna diversa → ordine ascendente
             setSortKey(col.key);
             setSortDir('asc');
         }
     }, [sortKey]);
 
-    // Filtra per passate / future + ordina
     const rows = useMemo(() => {
         const now = new Date();
         const filtered = allBookings.filter((b) => {
@@ -301,46 +384,30 @@ function PrenotazioniTab() {
             const start = new Date(b.startISO);
             return filter === 'future' ? start >= now : start < now;
         });
-
         return [...filtered].sort((a, b) => {
-            let va = a[sortKey] ?? '';
-            let vb = b[sortKey] ?? '';
-
-            // Per la colonna date usiamo startISO per un ordinamento corretto
-            if (sortKey === 'date') {
-                va = a.startISO ?? '';
-                vb = b.startISO ?? '';
-            }
-
+            let va = sortKey === 'date' ? (a.startISO ?? '') : (a[sortKey] ?? '');
+            let vb = sortKey === 'date' ? (b.startISO ?? '') : (b[sortKey] ?? '');
             const cmp = va.localeCompare(vb, 'it', { numeric: true, sensitivity: 'base' });
             return sortDir === 'asc' ? cmp : -cmp;
         });
     }, [allBookings, filter, sortKey, sortDir]);
 
-    // Paginazione
     const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const pageRows   = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <div className={style.tabContent}>
-
-            {/* Filtro passate / future */}
             <div className={style.bookingFilters}>
                 <button
                     className={`${style.filterBtn} ${filter === 'future' ? style.filterActive : ''}`}
                     onClick={() => setFilter('future')}
-                >
-                    Attuali e future
-                </button>
+                >Attuali e future</button>
                 <button
                     className={`${style.filterBtn} ${filter === 'past' ? style.filterActive : ''}`}
                     onClick={() => setFilter('past')}
-                >
-                    Passate
-                </button>
+                >Passate</button>
             </div>
 
-            {/* Stati: loading / errore / vuoto / tabella */}
             {loading ? (
                 <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento…</p>
             ) : error ? (
@@ -373,18 +440,14 @@ function PrenotazioniTab() {
                                         <td className={style.td}>{b.name}</td>
                                         <td className={style.td}>{b.surname}</td>
                                         <td className={style.td}>
-                                            {/* tel: su mobile attiva il dialogo chiamata */}
                                             {b.phone !== '—'
                                                 ? <a href={`tel:${b.phone}`} className={style.contactLink}>{b.phone}</a>
-                                                : '—'
-                                            }
+                                                : '—'}
                                         </td>
                                         <td className={style.td}>
-                                            {/* mailto: apre Outlook su desktop, app mail su mobile */}
                                             {b.email !== '—'
                                                 ? <a href={`mailto:${b.email}`} className={style.contactLink}>{b.email}</a>
-                                                : '—'
-                                            }
+                                                : '—'}
                                         </td>
                                     </tr>
                                 ))}
@@ -392,32 +455,262 @@ function PrenotazioniTab() {
                         </table>
                     </div>
 
-                    {/* Paginazione */}
                     {totalPages > 1 && (
                         <div className={style.pagination}>
                             <button
                                 className={style.pageBtn}
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                aria-label="Pagina precedente"
                             >
                                 <FontAwesomeIcon icon={faChevronLeft} />
                             </button>
-
                             <span className={style.pageInfo}>
                                 Pagina <strong>{page}</strong> di <strong>{totalPages}</strong>
                                 <span className={style.pageCount}> · {rows.length} prenotazioni</span>
                             </span>
-
                             <button
                                 className={style.pageBtn}
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                aria-label="Pagina successiva"
                             >
                                 <FontAwesomeIcon icon={faChevronRight} />
                             </button>
                         </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tab Orari (slot override per giorno)
+// ─────────────────────────────────────────────────────────────
+
+function SlotOverrideTab() {
+    const [selectedDate, setSelectedDate] = useState('');
+    const [slots, setSlots]               = useState([]);        // slot correnti (standard o override)
+    const [overrideId, setOverrideId]     = useState(null);      // null = nessun override attivo
+    const [isStandard, setIsStandard]     = useState(false);     // true = slot sono quelli standard
+    const [loadingSlots, setLoadingSlots] = useState(false);
+    const [saving, setSaving]             = useState(false);
+    const [resetting, setResetting]       = useState(false);
+    const [newSlot, setNewSlot]           = useState('');
+    const [saved, setSaved]               = useState(false);     // feedback "Salvato"
+    const [error, setError]               = useState(null);
+
+    // Al cambio data → carica override (se esiste) o slot standard
+    const handleDateChange = useCallback(async (val) => {
+        setSelectedDate(val);
+        setSlots([]);
+        setOverrideId(null);
+        setIsStandard(false);
+        setError(null);
+        setSaved(false);
+        if (!val) return;
+
+        setLoadingSlots(true);
+        try {
+            // Verifica se esiste un override per questa data
+            const overRes  = await fetch(`/api/manage-slot-override?date=${val}`);
+            const overData = await overRes.json();
+            if (!overRes.ok) throw new Error(overData.details || overData.error || 'Errore caricamento override');
+
+            if (overData.override) {
+                // Override esistente → mostra quegli slot
+                setSlots(overData.override.slots);
+                setOverrideId(overData.override.id);
+                setIsStandard(false);
+            } else {
+                // Nessun override → carica gli slot standard generati dalle regole
+                const stdRes  = await fetch('/api/get-available-slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: val }),
+                });
+                const stdData = await stdRes.json();
+                if (!stdRes.ok) throw new Error(stdData.error || 'Errore caricamento slot standard');
+                setSlots(stdData.slots || []);
+                setIsStandard(true);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoadingSlots(false);
+        }
+    }, []);
+
+    // Rimuove uno slot dalla lista locale (non salva ancora)
+    const handleRemoveSlot = useCallback((slotToRemove) => {
+        setSlots((prev) => prev.filter((s) => s !== slotToRemove));
+        setSaved(false);
+    }, []);
+
+    // Aggiunge uno slot alla lista locale (non salva ancora)
+    const handleAddSlot = useCallback(() => {
+        if (!newSlot || !/^\d{2}:\d{2}$/.test(newSlot)) return;
+        setSlots((prev) => {
+            if (prev.includes(newSlot)) return prev;
+            return [...prev, newSlot].sort();
+        });
+        setNewSlot('');
+        setSaved(false);
+    }, [newSlot]);
+
+    // Salva l'override su Google Calendar
+    const handleSave = useCallback(async () => {
+        if (!selectedDate || saving) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const res  = await fetch('/api/manage-slot-override', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: selectedDate, slots }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.details || data.error || 'Errore salvataggio');
+            setOverrideId(data.override.id);
+            setIsStandard(false);
+            setSaved(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [selectedDate, slots, saving]);
+
+    // Ripristina gli slot standard (elimina l'override)
+    const handleReset = useCallback(async () => {
+        if (!overrideId || resetting) return;
+        setResetting(true);
+        setError(null);
+        try {
+            const res  = await fetch('/api/manage-slot-override', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: overrideId }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Errore ripristino');
+            // Ricarica gli slot standard
+            await handleDateChange(selectedDate);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setResetting(false);
+        }
+    }, [overrideId, resetting, selectedDate, handleDateChange]);
+
+    return (
+        <div className={style.tabContent}>
+            <p className={style.tabDescription}>
+                Personalizza gli slot disponibili per un giorno specifico. Puoi aggiungere
+                o rimuovere orari rispetto alla disponibilità standard. Le modifiche
+                sostituiscono completamente gli slot di quel giorno.
+            </p>
+
+            {/* Selezione giorno */}
+            <div className={style.overrideDateRow}>
+                <div className={style.dateField}>
+                    <label className={style.dateLabel}>Seleziona giorno</label>
+                    <input
+                        type="date"
+                        className={style.dateInput}
+                        value={selectedDate}
+                        onChange={(e) => handleDateChange(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {error && <p className={style.errorMsg}>{error}</p>}
+
+            {/* Contenuto slot — visibile solo dopo aver scelto una data */}
+            {selectedDate && (
+                <>
+                    {loadingSlots ? (
+                        <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento slot…</p>
+                    ) : (
+                        <>
+                            {/* Banner informativo: standard vs override */}
+                            <div className={`${style.overrideBanner} ${isStandard ? style.bannerStandard : style.bannerOverride}`}>
+                                {isStandard
+                                    ? '📅 Slot generati automaticamente dalla disponibilità standard. Modifica e salva per personalizzarli.'
+                                    : '✏️ Stai visualizzando gli slot personalizzati per questo giorno.'}
+                            </div>
+
+                            {/* Lista slot con rimozione */}
+                            <div className={style.slotOverrideList}>
+                                {slots.length === 0 ? (
+                                    <p className={style.emptyMsg}>Nessuno slot — aggiungi almeno un orario.</p>
+                                ) : (
+                                    slots.map((s) => (
+                                        <div key={s} className={style.slotOverrideRow}>
+                                            <FontAwesomeIcon icon={faClock} className={style.vacationIcon} />
+                                            <span className={style.slotOverrideTime}>{s}</span>
+                                            <button
+                                                className={style.removeBtn}
+                                                onClick={() => handleRemoveSlot(s)}
+                                                title="Rimuovi slot"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Aggiunta nuovo slot */}
+                            <div className={style.addSlotRow}>
+                                <div className={style.dateField}>
+                                    <label className={style.dateLabel}>Aggiungi orario</label>
+                                    <input
+                                        type="time"
+                                        className={style.dateInput}
+                                        value={newSlot}
+                                        onChange={(e) => setNewSlot(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddSlot()}
+                                    />
+                                </div>
+                                <button
+                                    className={style.addBtn}
+                                    onClick={handleAddSlot}
+                                    disabled={!newSlot}
+                                >
+                                    <FontAwesomeIcon icon={faPlus} /> Aggiungi
+                                </button>
+                            </div>
+
+                            {/* Azioni principali */}
+                            <div className={style.overrideActions}>
+                                <button
+                                    className={style.saveBtn}
+                                    onClick={handleSave}
+                                    disabled={saving || slots.length === 0}
+                                >
+                                    {saving
+                                        ? <FontAwesomeIcon icon={faSpinner} spin />
+                                        : saved
+                                            ? <><FontAwesomeIcon icon={faCheck} /> Salvato</>
+                                            : <><FontAwesomeIcon icon={faCheck} /> Salva modifiche</>
+                                    }
+                                </button>
+
+                                {overrideId && (
+                                    <button
+                                        className={style.resetBtn}
+                                        onClick={handleReset}
+                                        disabled={resetting}
+                                        title="Elimina personalizzazione e torna agli slot standard"
+                                    >
+                                        {resetting
+                                            ? <FontAwesomeIcon icon={faSpinner} spin />
+                                            : <><FontAwesomeIcon icon={faRotateLeft} /> Ripristina standard</>
+                                        }
+                                    </button>
+                                )}
+                            </div>
+                        </>
                     )}
                 </>
             )}
