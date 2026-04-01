@@ -415,6 +415,225 @@
 }
 
 /* ─────────────────────────────────────────────────────
+   Tab Prenotazioni — bottoni azione (modifica / elimina)
+   ───────────────────────────────────────────────────── */
+
+.actionBtns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.actionBtn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: none;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.actionBtnEdit {
+    color: #3a6e9e;
+    border-color: #c0d8ee;
+}
+
+.actionBtnEdit:hover {
+    background-color: #e8f2fb;
+    border-color: #7aadd4;
+}
+
+.actionBtnDelete {
+    color: #b05050;
+    border-color: #e5d5d5;
+}
+
+.actionBtnDelete:hover {
+    background-color: #fdf2f2;
+    border-color: #c97070;
+}
+
+/* ─────────────────────────────────────────────────────
+   Modali — overlay e box
+   ───────────────────────────────────────────────────── */
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    width: 100%;
+    max-width: 500px;
+    overflow: hidden;
+}
+
+.modalTitle {
+    margin: 0;
+    padding: 1.25rem 1.5rem 1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2d3a2b;
+    border-bottom: 1px solid #eef5ec;
+}
+
+.modalBody {
+    padding: 1.25rem 1.5rem;
+    font-size: 0.9rem;
+    color: #3a3a3a;
+    line-height: 1.6;
+}
+
+.modalNote {
+    font-size: 0.82rem;
+    color: #888;
+    margin-top: 0.4rem;
+}
+
+.modalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #eef5ec;
+    background: #fafcfa;
+}
+
+/* ─────────────────────────────────────────────────────
+   Modali — form griglia
+   ───────────────────────────────────────────────────── */
+
+.modalFormGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+
+.modalField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.modalLabel {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #5a7b56;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.modalInput {
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.9rem;
+    border: 1px solid #c8e0c4;
+    border-radius: 8px;
+    background: #fff;
+    color: #2d3a2b;
+    outline: none;
+    transition: border-color 0.18s;
+    box-sizing: border-box;
+}
+
+.modalInput:focus {
+    border-color: #5a7b56;
+}
+
+/* ─────────────────────────────────────────────────────
+   Modali — bottoni azione
+   ───────────────────────────────────────────────────── */
+
+.btnPrimary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f7ffed;
+    background-color: #5a7b56;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.18s;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background-color: #435a40;
+}
+
+.btnPrimary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btnDanger {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #c0392b;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.18s;
+}
+
+.btnDanger:hover:not(:disabled) {
+    background-color: #a93226;
+}
+
+.btnDanger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #555;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+.btnSecondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────
    FerieTab — blocco orario parziale
    ───────────────────────────────────────────────────── */
 
@@ -613,5 +832,15 @@
 
     .container {
         max-width: 100%;
+    }
+
+    /* Form modale: 1 colonna su mobile */
+    .modalFormGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal {
+        max-width: 100%;
+        border-radius: 10px;
     }
 }
