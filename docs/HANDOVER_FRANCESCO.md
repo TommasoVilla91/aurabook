@@ -8,18 +8,57 @@ Segui le sezioni nell'ordine indicato.
 
 ## Indice
 
-1. [Dati hardcoded nel codice](#1-dati-hardcoded-nel-codice)
-2. [Variabili d'ambiente su Vercel](#2-variabili-dambiente-su-vercel)
-3. [SendGrid – email al cliente](#3-sendgrid--email-al-cliente)
-4. [EmailJS – notifica admin](#4-emailjs--notifica-admin)
-5. [Google Calendar & Service Account](#5-google-calendar--service-account)
-6. [Firebase – autenticazione admin](#6-firebase--autenticazione-admin)
-7. [Privacy Policy & Termini del Servizio](#7-privacy-policy--termini-del-servizio)
-8. [Checklist finale](#8-checklist-finale)
+1. [Sicurezza – regole fondamentali](#1-sicurezza--regole-fondamentali)
+2. [Dati hardcoded nel codice](#2-dati-hardcoded-nel-codice)
+3. [Variabili d'ambiente su Vercel](#3-variabili-dambiente-su-vercel)
+4. [Google Calendar & Service Account](#4-google-calendar--service-account)
+5. [Gmail App Password – email al cliente (Nodemailer)](#5-gmail-app-password--email-al-cliente-nodemailer)
+6. [EmailJS – notifica admin](#6-emailjs--notifica-admin)
+7. [Firebase – autenticazione admin](#7-firebase--autenticazione-admin)
+8. [Privacy Policy & Termini del Servizio](#8-privacy-policy--termini-del-servizio)
+9. [Checklist finale](#9-checklist-finale)
 
 ---
 
-## 1. Dati hardcoded nel codice
+## 1. Sicurezza – regole fondamentali
+
+> Queste regole evitano che credenziali finiscano nel repository e vengano segnalate
+> da servizi come GitGuardian.
+
+### MAI committare segreti
+
+- Il file `.env` **non deve MAI essere committato** su Git. È già presente in `.gitignore`,
+  ma verificalo sempre prima di un push.
+- Se per errore un segreto finisce in un commit, **non basta rimuoverlo nel commit successivo**:
+  resta visibile nello storico git. In quel caso bisogna ruotare (rigenerare) la credenziale.
+- Usa il file `.env.example` (presente nella root del progetto) come riferimento:
+  contiene solo i **nomi** delle variabili con valori placeholder, mai i valori reali.
+
+### Dove vanno i segreti
+
+| Ambiente | Dove inserire le credenziali |
+|---|---|
+| **Produzione (Vercel)** | Vercel → Project → Settings → Environment Variables |
+| **Sviluppo locale** | File `.env` nella root del progetto (gitignored) |
+
+### Verifica prima di ogni push
+
+```bash
+git diff --cached --name-only   # mostra i file che stai per committare
+```
+
+Se vedi `.env`, `*.json` con credenziali, o file con chiavi API → **non procedere**, rimuovili dallo staging con `git reset HEAD <file>`.
+
+### Rotazione periodica
+
+Ogni **3–6 mesi** è buona pratica ruotare:
+- Gmail App Password
+- Chiave JSON del Service Account Google
+- Public Key di EmailJS
+
+---
+
+## 2. Dati hardcoded nel codice
 
 Questi valori sono scritti direttamente nei file sorgente e vanno modificati **una volta sola**
 prima del deploy definitivo.
@@ -31,17 +70,17 @@ File che gestisce il template della mail automatica al cliente.
 | Costante | Valore attuale | Cosa inserire |
 |---|---|---|
 | `STUDIO_NAME` | `'Francesco · Massoterapista'` | Nome da mostrare nell'header della mail |
-| `THERAPIST_NAME` | `'Francesco'` | Nome usato nel testo ("Francesco la verificherà…") |
+| `THERAPIST_NAME` | `'Francesco'` | Nome usato nel testo ("Francesco la verificherà...") |
 | `STUDIO_ADDRESS` | `'Via fratelli Bronzetti, 9 – Milano'` | Indirizzo fisico dello studio |
 
 ### `api/create-booking-event.js` – riga `from:`
 
 ```js
-from: 'tommasovilla91@gmail.com',   // ← sostituire con l'email di Francesco
+from: `"Francesco · Massoterapista" <${gmailUser}>`,
 ```
 
-Questa è l'email **mittente** della mail al cliente.
-Deve essere **verificata in SendGrid** (vedi sezione 3).
+Il valore di `gmailUser` viene dalla variabile d'ambiente `GMAIL_USER`.
+Assicurarsi che corrisponda all'email di Francesco.
 
 ### `src/pages/HomePage.jsx`
 
@@ -73,21 +112,22 @@ Personalizzare il testo se necessario (es. tempi di risposta).
 ### `index.html` – titolo della pagina
 
 ```html
-<title>Vite + React</title>   <!-- ← cambiare con il nome del sito -->
+<title>Vite + React</title>   <!-- cambiare con il nome del sito -->
 ```
 
 Sostituire con es. `Francesco Massoterapista – Prenota online`.
 
 ---
 
-## 2. Variabili d'ambiente su Vercel
+## 3. Variabili d'ambiente su Vercel
 
-Accedere a [vercel.com](https://vercel.com) → progetto **aurabook** → **Settings → Environment Variables**.
+Accedere a [vercel.com](https://vercel.com) → progetto → **Settings → Environment Variables**.
 
 Tutte le variabili seguenti devono essere presenti e corrette per l'ambiente **Production**.
 
 ### Variabili frontend (prefisso `VITE_`)
-> Queste vengono incorporate nel bundle al momento del build — una modifica richiede un nuovo deploy.
+> Queste vengono incorporate nel bundle JS al momento del build.
+> Una modifica richiede un **nuovo deploy** (Vercel → Deployments → Redeploy).
 
 | Variabile | Dove trovare il valore |
 |---|---|
@@ -97,8 +137,6 @@ Tutte le variabili seguenti devono essere presenti e corrette per l'ambiente **P
 | `VITE_FIREBASE_STORAGE_BUCKET` | idem |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | idem |
 | `VITE_FIREBASE_APP_ID` | idem |
-| `VITE_GOOGLE_CALENDAR_CLIENT_ID` | Google Cloud Console → API & Services → Credentials → API Key |
-| `VITE_CALENDAR_ID` | Google Calendar → Impostazioni calendario → ID calendario (formato `xxx@group.calendar.google.com`) |
 | `VITE_EMAILJS_SERVICE_ID` | EmailJS Dashboard → Email Services → ID servizio |
 | `VITE_EMAILJS_TEMPLATE_ID` | EmailJS Dashboard → Email Templates → ID template |
 | `VITE_EMAILJS_PUBLIC_KEY` | EmailJS Dashboard → Account → API Keys → Public Key |
@@ -107,54 +145,147 @@ Tutte le variabili seguenti devono essere presenti e corrette per l'ambiente **P
 
 | Variabile | Dove trovare il valore |
 |---|---|
-| `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS` | Contenuto JSON completo del file scaricato da Google Cloud → IAM → Service Accounts → Chiavi |
-| `GOOGLE_CALENDAR_ID` | Stesso valore di `VITE_CALENDAR_ID` sopra |
-| `SENDGRID_API_KEY` | SendGrid → Settings → API Keys |
+| `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS` | Contenuto JSON del file chiave scaricato da Google Cloud (vedi sezione 4) |
+| `GOOGLE_CALENDAR_ID` | ID calendario di Francesco (vedi sezione 4) |
+| `GMAIL_USER` | Email Gmail di Francesco (es. `sartifrancescomario@gmail.com`) |
+| `GMAIL_APP_PASSWORD` | App Password Gmail di Francesco (vedi sezione 5) |
+| `CRON_SECRET` | Stringa casuale lunga usata per proteggere il cron job di pulizia prenotazioni |
 
 > **Nota `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`**: incollare l'intero contenuto del file `.json`
 > scaricato da Google Cloud **su una sola riga** (Vercel gestisce automaticamente i caratteri speciali).
+> **Non committare mai** questo file nel repository.
+
+> **Nota `CRON_SECRET`**: generare una stringa casuale sicura, ad esempio con:
+> `openssl rand -hex 32` (terminale) oppure [generate-secret.vercel.app](https://generate-secret.vercel.app/64).
 
 ---
 
-## 3. SendGrid – email al cliente
+## 4. Google Calendar & Service Account
 
-### 3.1 Verificare il mittente (obbligatorio)
+Il Service Account è un "utente robot" creato su Google Cloud che permette all'app
+di leggere e scrivere eventi sul calendario di Francesco senza che Francesco debba
+mai autenticarsi manualmente.
 
-La mail al cliente viene inviata dall'indirizzo specificato nel campo `from:` di
-`api/create-booking-event.js`. SendGrid **non consente l'invio** da indirizzi non verificati.
+### 4.1 Creare un nuovo Service Account
 
-Passaggi:
-1. Accedere a [app.sendgrid.com](https://app.sendgrid.com)
-2. **Settings → Sender Authentication → Single Sender Verification**
-3. Cliccare **Create New Sender** e inserire l'email professionale di Francesco
-4. Completare la verifica cliccando il link nella mail ricevuta
-5. Aggiornare il campo `from:` in `api/create-booking-event.js` con la stessa email
+1. Vai su [console.cloud.google.com](https://console.cloud.google.com)
+2. Seleziona il progetto (o creane uno nuovo)
+3. **API e servizi → Libreria** → cerca **Google Calendar API** → clicca **Abilita**
+4. **IAM e amministrazione → Account di servizio** → **Crea account di servizio**
+   - Nome: `calendar-aurabook` (o un nome che preferisci)
+   - Ruolo: nessuno richiesto (non serve un ruolo a livello progetto)
+   - Clicca **Fine**
+5. Nella lista degli account di servizio, clicca su quello appena creato
+6. Tab **Chiavi** → **Aggiungi chiave → Crea nuova chiave → JSON** → **Crea**
+7. Il browser scarica un file `.json` — **questo file contiene la chiave privata, custodiscilo con cura**
 
-### 3.2 Personalizzare il template mail
+### 4.2 Configurare le variabili d'ambiente
 
-Il template si trova in `api/emailTemplates/customerConfirmation.js`.
-Le costanti da aggiornare sono nella sezione 1 di questa guida.
+Dal file `.json` scaricato:
 
-### 3.3 Riconnettere l'account (se scaduto)
+| Variabile d'ambiente | Dove trovare il valore nel JSON |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS` | **Intero contenuto** del file JSON (copia-incolla tutto su Vercel, su una riga) |
 
-Se SendGrid smette di inviare mail, verificare che l'API Key sia ancora valida:
-**Settings → API Keys** — se scaduta, crearne una nuova e aggiornare la variabile
-`SENDGRID_API_KEY` su Vercel.
+> Per lo sviluppo locale nel file `.env` puoi usare in alternativa due variabili separate:
+> ```
+> GOOGLE_SERVICE_ACCOUNT_EMAIL=nome-account@progetto.iam.gserviceaccount.com
+> GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+> ```
+> La chiave privata va racchiusa tra virgolette e i ritorni a capo scritti come `\n`.
+
+### 4.3 Francesco condivide il suo calendario
+
+Francesco deve dare accesso al Service Account:
+
+1. Apre **Google Calendar** → [calendar.google.com](https://calendar.google.com)
+2. Nel pannello sinistro, tre puntini sul suo calendario → **"Impostazioni e condivisione"**
+3. Scorre fino a **"Condividi con persone o gruppi specifici"** → **"+ Aggiungi persone e gruppi"**
+4. Inserisce l'email del Service Account (la trovi nel campo `client_email` del file JSON,
+   formato: `nome@progetto.iam.gserviceaccount.com`)
+5. Permesso: **"Apportare modifiche agli eventi"**
+6. Clicca **Invia**
+
+### 4.4 Trovare il Calendar ID
+
+Nella stessa pagina "Impostazioni e condivisione", sezione **"Integra calendario"**,
+c'è il campo **ID calendario**.
+
+- Di solito corrisponde all'indirizzo Gmail di Francesco (es. `sartifrancescomario@gmail.com`)
+- Oppure una stringa tipo `abc123@group.calendar.google.com`
+
+**Aggiorna su Vercel**: variabile `GOOGLE_CALENDAR_ID` con questo valore.
+
+### 4.5 Eliminare il file JSON scaricato
+
+Dopo aver copiato il contenuto del file JSON nelle variabili d'ambiente (Vercel + `.env` locale):
+
+- **Elimina il file JSON dal computer** (o spostalo in un luogo sicuro offline)
+- **Non metterlo MAI nella cartella del progetto** — potrebbe essere committato per errore
 
 ---
 
-## 4. EmailJS – notifica admin
+## 5. Gmail App Password – email al cliente (Nodemailer)
 
-EmailJS invia la notifica a Francesco ogni volta che un cliente invia una richiesta.
+L'app usa **Nodemailer con Gmail SMTP** per inviare la mail di conferma al cliente
+dopo la prenotazione. Per funzionare, Gmail richiede una "App Password" dedicata
+(non la password normale dell'account).
 
-### 4.1 Credenziali
+### 5.1 Prerequisito: Verifica in 2 passaggi
 
-Verificare che le tre variabili d'ambiente siano corrette (vedi sezione 2):
-`VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, `VITE_EMAILJS_PUBLIC_KEY`.
+1. Francesco va su [myaccount.google.com](https://myaccount.google.com) con il suo account Gmail
+2. **Sicurezza → Verifica in 2 passaggi** → attiva se non è già attiva
+   (è obbligatoria per creare App Password)
 
-### 4.2 Template EmailJS
+### 5.2 Creare la App Password
 
-Il template deve contenere le seguenti variabili (con la sintassi `{{variabile}}`):
+1. Vai su [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+2. Nome app: `AuraBook`
+3. Clicca **Crea**
+4. Google mostra una password di **16 caratteri** (es. `abcd efgh ijkl mnop`)
+5. Copia la stringa **senza spazi** → `abcdefghijklmnop`
+
+### 5.3 Aggiornare le variabili
+
+| Variabile | Valore |
+|---|---|
+| `GMAIL_USER` | Email Gmail di Francesco (es. `sartifrancescomario@gmail.com`) |
+| `GMAIL_APP_PASSWORD` | La stringa da 16 caratteri generata al punto 5.2 |
+
+Aggiornare sia su **Vercel** che nel `.env` locale.
+
+### 5.4 Se le email smettono di funzionare
+
+- L'App Password può scadere se Francesco disattiva e riattiva la Verifica in 2 passaggi
+- In quel caso: ripetere i passi 5.2–5.3 per generarne una nuova
+
+---
+
+## 6. EmailJS – notifica admin
+
+EmailJS invia una notifica email a Francesco **dal browser del cliente** ogni volta che
+qualcuno compila il modulo di prenotazione. Funziona indipendentemente dal backend.
+
+### 6.1 Creare l'account EmailJS
+
+1. Francesco va su [emailjs.com](https://www.emailjs.com) e crea un account gratuito
+   (piano Free: 200 email/mese, sufficiente per un piccolo studio)
+
+### 6.2 Collegare Gmail
+
+1. Dashboard → **Email Services** → **Add New Service** → seleziona **Gmail**
+2. Si autentica con il suo account Gmail
+3. Assegna un nome al servizio (es. "Gmail Francesco") → **Create Service**
+4. Copia il **Service ID** (es. `service_abc123`)
+
+### 6.3 Creare il template
+
+1. Dashboard → **Email Templates** → **Create New Template**
+2. Configurare:
+   - **To email**: `sartifrancescomario@gmail.com` (o l'email dove vuole ricevere le notifiche)
+   - **From name**: `AuraBook`
+   - **Subject**: `Nuova prenotazione — {{name}} {{surname}}`
+   - **Body**: usare le seguenti variabili (con la sintassi `{{variabile}}`):
 
 | Variabile | Contenuto |
 |---|---|
@@ -163,99 +294,52 @@ Il template deve contenere le seguenti variabili (con la sintassi `{{variabile}}
 | `{{phone}}` | Telefono |
 | `{{email}}` | Email |
 | `{{birthdate}}` | Data di nascita |
-| `{{booking_date}}` | Data prenotazione |
-| `{{booking_time}}` | Orario |
+| `{{booking_date}}` | Data prenotazione (es. "15 aprile 2026") |
+| `{{booking_time}}` | Orario (es. "11:00") |
 | `{{message}}` | Motivo della visita |
 
-Accedere a [emailjs.com](https://www.emailjs.com) → **Email Templates** → selezionare il template
-e verificare che tutte le variabili siano presenti.
+3. Clicca **Save** → copia il **Template ID** (es. `template_xyz789`)
 
-### 4.3 Riconnettere Gmail (se scade)
+### 6.4 Trovare la Public Key
+
+1. In alto a destra → icona profilo → **Account**
+2. Tab **API Keys** → copia la **Public Key**
+
+### 6.5 Aggiornare le variabili
+
+| Variabile Vercel | Valore |
+|---|---|
+| `VITE_EMAILJS_SERVICE_ID` | Service ID dal passo 6.2 |
+| `VITE_EMAILJS_TEMPLATE_ID` | Template ID dal passo 6.3 |
+| `VITE_EMAILJS_PUBLIC_KEY` | Public Key dal passo 6.4 |
+
+> Queste sono variabili `VITE_*` (frontend): dopo averle aggiornate su Vercel
+> serve un **redeploy** perché vengono incorporate nel bundle JS a build time.
+
+### 6.6 Se le notifiche smettono di arrivare
 
 Il token OAuth2 di Gmail scade periodicamente:
 **Email Services → seleziona il servizio Gmail → Reconnect Account**.
 
 ---
 
-## 5. Google Calendar & Service Account
-
-### Google Calendar
-Francesco deve condividere il suo calendario con l'email del Service Account:
-
-1. Google Calendar → tre puntini sul suo calendario → **"Impostazioni e condivisione"**
-2. **"Condividi con persone specifiche"** → aggiunge:
-
-```
-calendar-reader@prova-ee5bd.iam.gserviceaccount.com
-```
-con permesso **"Apportare modifiche agli eventi"**
-
-3. Nella stessa pagina, sezione "Integra calendario", copia il suo **Calendar ID** (di solito è il suo indirizzo Gmail o una stringa __xxx@group.calendar.google.com__) e te lo manda
-
-**Tu su Vercel**: aggiorna __GOOGLE_CALENDAR_ID__ con quel valore. Attualmente è impostato su __tommasovilla91@gmail.com__ (il tuo), quindi va cambiato.
-
-### EmailJS (Francesco riceve la notifica per ogni prenotazione)
-L'app usa EmailJS **lato browser** per notificare Francesco ad ogni prenotazione nuova. Le credenziali attuali sono di test.
-
-1. Va su **emailjs.com** → crea account gratuito (200 email/mese, sufficiente)
-2. **Email Services** → Add New Service → **Gmail** → si autentica → copia il **Service ID**
-3. **Email Templates** → Create New Template → imposta:
-  - **To**: __sartifrancescomario@gmail.com__
-  - **Subject**: __Nuova prenotazione — {{name}} {{surname}}__
-  - **Body**: usa le variabili __{{name}}, {{surname}}, {{phone}}, {{email}}, {{birthdate}}, {{booking_date}}, {{booking_time}}, {{message}}__
-  - Copia il **Template ID**
-4. **Account** → **API Keys** → copia la **Public Key**
-
-**Tu su Vercel**: aggiorna __VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY__. Sono variabili __VITE_*__ quindi richiedono un redeploy dopo la modifica.
-
-### Gmail App Password (Nodemailer invia la conferma al cliente)
-Il backend usa Gmail SMTP per mandare la conferma email al cliente. Serve una "App Password" (non la password normale di Gmail).
-
-1. Attiva la Verifica in 2 passaggi su sartifrancescomario@gmail.com (obbligatoria)
-2. Vai su myaccount.google.com/apppasswords → crea password per "AuraBook"
-3. Google genera una stringa da 16 caratteri → copiala senza spazi
-
-**Tu su Vercel**: aggiorna __GMAIL_APP_PASSWORD__ con quella stringa.
-
-### 5.1 Service Account
-
-Il Service Account permette all'API Vercel di creare eventi nel calendario di Francesco.
-
-- Il file JSON delle credenziali deve essere caricato nella variabile `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS` su Vercel.
-- L'email del Service Account (formato `xxx@xxx.iam.gserviceaccount.com`) deve avere i permessi
-  **"Apporta modifiche agli eventi"** sul calendario di Francesco:
-  Google Calendar → Impostazioni → **Condividi con persone specifiche** → aggiungere l'email del Service Account.
-
-### 5.2 Calendario
-
-Assicurarsi che `GOOGLE_CALENDAR_ID` e `VITE_CALENDAR_ID` puntino allo stesso calendario
-su cui Francesco vuole ricevere le prenotazioni.
-
-### 5.3 API Key frontend
-
-`VITE_GOOGLE_CALENDAR_CLIENT_ID` è l'API Key usata dal frontend per leggere gli eventi
-(mostrare i giorni occupati). Verificare che sia abilitata per l'API **Google Calendar** in
-Google Cloud Console → **APIs & Services → Credentials**.
-
----
-
-## 6. Firebase – autenticazione admin
+## 7. Firebase – autenticazione admin
 
 Firebase gestisce il login della sezione amministratore (`/admin-dashboard`).
 
-### 6.1 Creare l'utente admin
+### 7.1 Creare l'utente admin
 
 1. Accedere a [console.firebase.google.com](https://console.firebase.google.com)
 2. Selezionare il progetto
 3. **Authentication → Users → Add user**
 4. Inserire l'email e la password di Francesco
 
-### 6.2 Accesso admin
+### 7.2 Accesso admin
 
-Francesco accederà con le credenziali create al punto 6.1 tramite la pagina `/login`
+Francesco accederà con le credenziali create al punto 7.1 tramite la pagina `/login`
 del sito. Da lì verrà reindirizzato a `/admin-dashboard`.
 
-### 6.3 Metodo di accesso Google
+### 7.3 Metodo di accesso Google
 
 Se Francesco vuole accedere con il suo account Google, assicurarsi che
 **Authentication → Sign-in method → Google** sia abilitato e che il dominio del sito
@@ -263,7 +347,7 @@ sia nella lista dei domini autorizzati (**Authorized domains**).
 
 ---
 
-## 7. Privacy Policy & Termini del Servizio
+## 8. Privacy Policy & Termini del Servizio
 
 Il testo legale si trova in `src/components/PrivacyModal.jsx`.
 Tutti i placeholder `[MAIUSCOLO]` devono essere compilati prima del go-live.
@@ -272,33 +356,41 @@ Consultare il file **`SETUP_TERMINI.md`** per la lista completa con spiegazioni 
 
 ---
 
-## 8. Checklist finale
+## 9. Checklist finale
 
 Prima di condividere il link con i clienti, verificare punto per punto:
 
 ### Codice
 - [ ] `STUDIO_NAME`, `THERAPIST_NAME`, `STUDIO_ADDRESS` aggiornati in `customerConfirmation.js`
-- [ ] `from:` in `create-booking-event.js` aggiornato con email professionale
+- [ ] `GMAIL_USER` su Vercel impostato con l'email di Francesco
 - [ ] Testi Homepage aggiornati (`HomePage.jsx`)
 - [ ] Indirizzo in EventModal verificato (`EventModal.jsx`)
 - [ ] Titolo pagina aggiornato (`index.html`)
 - [ ] Tutti i placeholder `[MAIUSCOLO]` in `PrivacyModal.jsx` compilati
 
 ### Servizi esterni
-- [ ] Mittente SendGrid verificato (Single Sender Verification completata)
-- [ ] EmailJS: Gmail riconnesso, template verificato
-- [ ] Google Calendar: Service Account ha i permessi sul calendario di Francesco
-- [ ] Variabili d'ambiente Vercel tutte impostate e corrette
+- [ ] Gmail: Verifica in 2 passaggi attiva, App Password creata e funzionante
+- [ ] EmailJS: Gmail connesso, template verificato con tutte le variabili
+- [ ] Google Calendar: nuovo Service Account creato, calendario condiviso con permessi di modifica
+- [ ] Variabili d'ambiente Vercel **tutte** impostate e corrette
 - [ ] Utente admin creato su Firebase Authentication
+- [ ] Cron job visibile su Vercel (Settings → Cron Jobs)
+
+### Sicurezza
+- [ ] File `.env` presente in `.gitignore`
+- [ ] Nessun segreto nel repository (verificare con `git log -p -- .env`)
+- [ ] File JSON del Service Account eliminato dal computer (o conservato offline)
+- [ ] Nessuna API key hardcoded nel codice sorgente
 
 ### Test prima del go-live
-- [ ] Fare una prenotazione di prova su [aurabook-five.vercel.app](https://aurabook-five.vercel.app)
-- [ ] Verificare che arrivi la mail al cliente (con i dati corretti)
-- [ ] Verificare che arrivi la notifica admin via EmailJS
+- [ ] Fare una prenotazione di prova sul sito
+- [ ] Verificare che arrivi la mail di conferma al cliente (Nodemailer/Gmail)
+- [ ] Verificare che arrivi la notifica admin via EmailJS a Francesco
 - [ ] Verificare che l'evento appaia nel Google Calendar di Francesco
 - [ ] Testare il login admin su `/login`
 - [ ] Controllare che la modale Privacy & Termini si apra e il testo sia corretto
 
 ---
 
-*Documento generato automaticamente — aggiornare in caso di modifiche all'architettura.*
+*Documento aggiornato — riflette l'architettura attuale: Nodemailer/Gmail SMTP per le email
+al cliente, EmailJS per le notifiche admin, Google Service Account per Calendar.*

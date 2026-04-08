@@ -1,6 +1,7 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
 import nodemailer from 'nodemailer';
 import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
+import { adminNotificationEmail } from './emailTemplates/adminNotification.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -52,17 +53,19 @@ export default async function handler(req, res) {
 
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    const adminEmail = process.env.ADMIN_EMAIL;
     if (!gmailUser || !gmailPass) {
       emailError = 'GMAIL_USER o GMAIL_APP_PASSWORD non configurate nelle variabili d\'ambiente Vercel';
       console.warn('Nodemailer skip:', emailError);
     } else {
-      // Genera subject e HTML dal template esterno (api/emailTemplates/customerConfirmation.js)
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailPass },
+      });
+
+      // Mail di ricevuta al cliente
       const { subject, html } = customerConfirmationEmail({ name, dateLabel, booking_time });
       try {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: { user: gmailUser, pass: gmailPass },
-        });
         await transporter.sendMail({
           from: `"Francesco · Massoterapista" <${gmailUser}>`,
           to: email,
@@ -72,7 +75,24 @@ export default async function handler(req, res) {
         emailSent = true;
       } catch (err) {
         emailError = err.message;
-        console.error('Nodemailer error:', err.message);
+        console.error('Nodemailer customer email error:', err.message);
+      }
+
+      // Notifica admin (Francesco) — non blocca la risposta se fallisce
+      if (adminEmail) {
+        const { subject: adminSubject, html: adminHtml } = adminNotificationEmail({
+          name, surname, phone, email, birthdate, dateLabel, booking_time, message,
+        });
+        try {
+          await transporter.sendMail({
+            from: `"AuraBook" <${gmailUser}>`,
+            to: adminEmail,
+            subject: adminSubject,
+            html: adminHtml,
+          });
+        } catch (err) {
+          console.error('Nodemailer admin email error:', err.message);
+        }
       }
     }
 

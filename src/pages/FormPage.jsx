@@ -9,7 +9,6 @@ import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
 import style from './FormPage.module.css';
 import dayjs from 'dayjs';
 import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dati locali
-import emailjs from '@emailjs/browser'; // Importa la libreria EmailJS
 import PhoneInput from 'react-phone-number-input'; // Importa il componente
 import 'dayjs/locale/it'; // Importa la localizzazione italiana
 import 'react-phone-number-input/style.css'; // Importa gli stili di default
@@ -109,46 +108,12 @@ function FormPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const templateParams = {
-            name: name,
-            surname: surname,
-            phone: phone,
-            email: email,
-            birthdate: birthRef.current.value,
-
-            // Dati della prenotazione
-            booking_date: formattedDate,
-            booking_time: selectedTime,
-
-            message: descrRef.current.value
-        };
-
-        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-
-        if (!infoValidation.areInfoValid || !templateParams.birthdate) {
+        if (!infoValidation.areInfoValid || !birthRef.current.value) {
             toast.info('Assicurati di aver compilato tutti i campi.');
             return;
         }
 
-        // ── Step 1: notifica admin via EmailJS ──────────────────────────
-        try {
-            const res = await emailjs.send(serviceId, templateId, templateParams, publicKey);
-            if (res.status !== 200) {
-                // EmailJS ha risposto ma con uno status inatteso
-                console.error('EmailJS status inatteso:', res.status, res);
-                toast.error('Errore durante l\'invio della notifica. Riprova più tardi.');
-                return;
-            }
-            console.log('EmailJS: notifica admin inviata', res);
-        } catch (emailErr) {
-            console.error('EmailJS error:', emailErr);
-            toast.error('Errore durante l\'invio della notifica. Controlla la connessione e riprova.');
-            return;
-        }
-
-        // ── Step 2: crea evento Google Calendar + email cliente ─────────
+        // ── Crea evento Google Calendar + invia email cliente e admin ───
         try {
             const response = await fetch('/api/create-booking-event', {
                 method: 'POST',
