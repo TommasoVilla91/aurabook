@@ -4,33 +4,27 @@ import SuccessBookingModal from '../components/SuccessBookingModal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHourglassStart } from '@fortawesome/free-solid-svg-icons';
-import { faCalendar, faClock } from '@fortawesome/free-regular-svg-icons';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import style from './FormPage.module.css';
-import dayjs from 'dayjs';
-import localeData from 'dayjs/plugin/localeData'; // Importa il plugin per i dati locali
-import PhoneInput from 'react-phone-number-input'; // Importa il componente
-import 'dayjs/locale/it'; // Importa la localizzazione italiana
-import 'react-phone-number-input/style.css'; // Importa gli stili di default
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { toast } from '../utils/toast';
+import { longLabel } from '../utils/dates';
+import { useLanguage } from '../i18n/useLanguage';
 
 
 function FormPage() {
+    const { t, locale, lang } = useLanguage();
     const { getUserInfo } = useGlobalContext();
     const { date } = useParams(); // date=2025-07-18&time=11:00
 
     const userInfo = getUserInfo();
     const navigate = useNavigate()
 
-    dayjs.extend(localeData); // Estendi dayjs con il plugin
-    dayjs.locale('it'); // Imposta la lingua globale a italiano
-
     const dayAndHour = date.replace("date=", "").split("&time="); // ["2025-07-18", "11:00"]
 
-    const selectedDate = dayAndHour[0]; // 2025-07-11
-    const selectedTime = dayAndHour[1]; // 12:00
-
-    const formattedDate = dayjs(selectedDate).format('D MMMM YYYY'); // Formatta la data in 11 Luglio 2025
+    const selectedDate = dayAndHour[0];
+    const selectedTime = dayAndHour[1];
 
     const [name, setName] = useState(userInfo.name || '');
     const [surname, setSurname] = useState(userInfo.surname || '');
@@ -38,6 +32,7 @@ function FormPage() {
     const [email, setEmail] = useState(userInfo.email || '');
     const [emailTouched, setEmailTouched] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
+    const [sending, setSending] = useState(false);
     // Controlla la visibilità della modale Privacy & Termini
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     // Dati del modale di successo (null = modale chiusa)
@@ -74,7 +69,7 @@ function FormPage() {
         } catch (err) {
             console.error('Errore nel salvataggio dei dati nel localStorage:', err);
         }
-    }, [name, surname, phone, email, selectedDate, selectedTime, birthRef.current?.value, descrRef.current?.value]);
+    }, [name, surname, phone, email, selectedDate, selectedTime]);
 
 
     const symbols = "!@#$%^&*()-_=+[]{}|;:'\\,.<>?/`~";
@@ -86,13 +81,13 @@ function FormPage() {
 
         let emailValidation = {
             isValid: false,
-            errorMessage: ''
+            errorKey: ''
         };
 
         if (email.trim() === '') {
-            emailValidation.errorMessage = 'L\'email è obbligatoria.';
-        } else if (!emailRegex.test(email.trim())) { // regex per una validazione completa del formato
-            emailValidation.errorMessage = 'Inserisci un formato email valido.';
+            emailValidation.errorKey = 'form.emailRequired';
+        } else if (!emailRegex.test(email.trim())) {
+            emailValidation.errorKey = 'form.emailInvalid';
         } else {
             emailValidation.isValid = true;
         }
@@ -109,11 +104,11 @@ function FormPage() {
         e.preventDefault();
 
         if (!infoValidation.areInfoValid || !birthRef.current.value) {
-            toast.info('Assicurati di aver compilato tutti i campi.');
+            toast.info(t('form.fillAll'));
             return;
         }
 
-        // ── Crea evento Google Calendar + invia email cliente e admin ───
+        setSending(true);
         try {
             const response = await fetch('/api/create-booking-event', {
                 method: 'POST',
@@ -126,29 +121,30 @@ function FormPage() {
                     birthdate: birthRef.current.value,
                     booking_date: selectedDate,
                     booking_time: selectedTime,
-                    message: descrRef.current.value
+                    message: descrRef.current.value,
+                    lang
                 }),
             });
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
+                if (response.status === 409) {
+                    toast.error(t('form.slotTaken'));
+                    navigate({ pathname: '/', hash: '#calendario' });
+                    return;
+                }
                 console.error('API error:', response.status, errData);
-                toast.error('Errore durante la creazione della prenotazione. Riprova più tardi.');
+                toast.error(t('form.apiError'));
                 return;
             }
 
             const data = await response.json();
 
             if (data && data.success) {
-                // Log diagnostico + avviso utente se SendGrid non ha inviato la mail
                 if (!data.emailSent) {
-                    console.warn('⚠️ Mail al cliente NON inviata:', data.emailError || 'motivo sconosciuto');
-                    toast.info('Prenotazione registrata! La mail di riepilogo potrebbe non essere arrivata — controlla la cartella spam.');
-                } else {
-                    console.log('✅ Mail al cliente inviata correttamente.');
+                    toast.info(t('form.noEmail'));
                 }
 
-                // Resetta il modulo
                 setName('');
                 setSurname('');
                 setPhone('');
@@ -156,161 +152,117 @@ function FormPage() {
                 if (birthRef.current) birthRef.current.value = '';
                 if (descrRef.current) descrRef.current.value = '';
 
-                // Formatta la data per il modale (es. "martedì 15 aprile 2026")
-                const [y, m, d] = selectedDate.split('-').map(Number);
-                const dateLabel = new Date(y, m - 1, d).toLocaleDateString('it-IT', {
-                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                });
-
                 // Mostra il modale di riepilogo; la navigazione avviene alla chiusura
-                setSuccessData({ name, dateLabel, bookingTime: selectedTime });
+                setSuccessData({ name, date: selectedDate, bookingTime: selectedTime });
             }
 
         } catch (apiErr) {
             console.error('Errore API create-booking-event:', apiErr);
-            toast.error('Errore di rete durante la prenotazione. Riprova più tardi.');
+            toast.error(t('form.netError'));
+        } finally {
+            setSending(false);
         }
     };
 
 
     return (
         <>
-        <div className={style.formPage}>
-            <section className={style.formContainer}>
+        <main className={style.page}>
+            <aside className={`${style.summary} rise`} style={{ '--i': 1 }}>
+                <div>
+                    <h2>{longLabel(selectedDate, locale)}, {selectedTime}</h2>
+                    <p>{t('form.session')}</p>
+                    <Link to={{ pathname: '/', hash: '#calendario' }} className={style.changeDate}>{t('form.change')}</Link>
+                </div>
+            </aside>
 
-                <div className={style.imageForm}>
+            <section className={style.formArea}>
+                <h1 className="rise" style={{ '--i': 2 }}>{t('form.title')}</h1>
+                <p className={`${style.intro} rise`} style={{ '--i': 3 }}>
+                    {t('form.intro')}
+                </p>
 
-                    <h1>La tua visita</h1>
-
-                    <div className={style.bookingInfo}>
-                        <div>
-                            <FontAwesomeIcon className={style.icon} icon={faCalendar} /> 
-                            <h3>{formattedDate}</h3>
-                        </div>
-                        <div>
-                            <FontAwesomeIcon className={style.icon} icon={faClock} />
-                            <h3>{selectedTime}</h3>
-                        </div>
-                        <div>
-                            <FontAwesomeIcon className={style.icon} icon={faHourglassStart} />
-                            <h3>1h</h3>
-                        </div>
-
-                        <Link to={'/'} className={style.changeDate}>Cambia data</Link>
-
+                <form onSubmit={handleSubmit} className={style.form}>
+                    <div className={`${style.field} rise`} style={{ '--i': 4 }}>
+                        <label htmlFor="name">{t('form.name')}</label>
+                        <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" required />
+                        {infoValidation.nameField && <span className={style.error}>{t('form.nameSymbols')}</span>}
                     </div>
-                </div>
 
-                <div className={style.formArea}>
+                    <div className={`${style.field} rise`} style={{ '--i': 5 }}>
+                        <label htmlFor="surname">{t('form.surname')}</label>
+                        <input type="text" id="surname" name="surname" value={surname} onChange={(e) => setSurname(e.target.value)} autoComplete="family-name" required />
+                        {infoValidation.surnameField && <span className={style.error}>{t('form.surnameSymbols')}</span>}
+                    </div>
 
-                    <h1>Completa la tua prenotazione</h1>
+                    <div className={`${style.field} rise`} style={{ '--i': 6 }}>
+                        <label htmlFor="birth">{t('form.birth')}</label>
+                        <input type="date" id="birth" name="birth" ref={birthRef} autoComplete="bday" required />
+                    </div>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className={style.formTop}>
+                    <div className={`${style.field} ${style.phone} rise`} style={{ '--i': 7 }}>
+                        <label htmlFor="phone-input">{t('form.phone')}</label>
+                        <PhoneInput
+                            id="phone-input"
+                            value={phone}
+                            onChange={setPhone}
+                            defaultCountry="IT"
+                            international={true}
+                            countryCallingCodeEditable={false}
+                            withCountryCallingCode
+                        />
+                        {phone === undefined && <span className={style.error}>{t('form.phoneInvalid')}</span>}
+                    </div>
 
-                            {/* inputs area */}
+                    <div className={`${style.field} ${style.full} rise`} style={{ '--i': 8 }}>
+                        <label htmlFor="email">{t('form.email')}</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            onBlur={() => setEmailTouched(true)}
+                            autoComplete="email"
+                            required
+                        />
+                        {emailTouched && !infoValidation.emailField.isValid &&
+                            <span className={style.error}>{t(infoValidation.emailField.errorKey)}</span>}
+                    </div>
 
-                            <div className={style.anagraphicInfo}>
+                    <div className={`${style.field} ${style.full} rise`} style={{ '--i': 9 }}>
+                        <label htmlFor="description">{t('form.reason')}</label>
+                        <textarea name="description" id="description" ref={descrRef} rows={2} required></textarea>
+                    </div>
 
-                                <div className={style.col}>
-                                    <label htmlFor="name">Nome:</label>
-                                    <input type="text" id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                                    {infoValidation.nameField && <span className={style.error}>Il nome non può contenere simboli speciali.</span>}
-                                </div>
-
-                                <div className={style.col}>
-                                    <label htmlFor="surname">Cognome:</label>
-                                    <input type="text" id="surname" name="surname" value={surname} onChange={(e) => setSurname(e.target.value)} required />
-                                    {infoValidation.surnameField && <span className={style.error}>Il cognome non può contenere simboli speciali.</span>}
-                                </div>
-
-                                <div className={style.col}>
-                                    <label htmlFor="date">Data di nascita:</label>
-                                    <input type="date" id="birth" name="birth" ref={birthRef} required />
-                                </div>
-
-                                <div className={style.col}>
-                                    <label htmlFor="phone">Telefono:</label>
-
-                                    <PhoneInput
-                                        id="phone-input" // L'ID per l'input generato
-                                        value={phone}
-                                        onChange={setPhone} // La libreria gestisce l'aggiornamento dello stato
-                                        defaultCountry="IT" // Imposta il paese predefinito (es. Italia)
-                                        international={true} // Rende l'input sempre internazionale (con prefisso)
-                                        countryCallingCodeEditable={false} // Impedisce la modifica del prefisso numerico diretto
-                                        withCountryCallingCode // Mostra il prefisso accanto alla bandiera
-                                    />
-                                    {/* Mostra un errore se il telefono non è valido (il suo valore è null/undefined) */}
-                                    {phone === undefined && <p className={style.error}>Inserisci un numero di telefono valido.</p>}
-
-                                </div>
-
-                                <div className={style.col}>
-                                    <label htmlFor="email">Email:</label>
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        // onBlur si attiva quando l'input perde il focus
-                                        onBlur={() => setEmailTouched(true)}
-                                        required
-                                    />
-                                    {emailTouched && !infoValidation.emailField.isValid &&
-                                        <span className={style.error}>{infoValidation.emailField.errorMessage}</span>}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* description area */}
-
-                        <div className={style.description}>
-                            <label htmlFor="description">Descrivi il motivo della visita</label>
-                            <textarea name="description" id="description" ref={descrRef} required></textarea>
-                        </div>
-
-                        {/* submit button area */}
-
-                        <div className={style.submitButton}>
-                            <p>N.B. sarai prontamente ricontatta/o da Francesco per confermarti l'avvennuta prenotazione</p>
-                            <div className={style.termConditions}>
-                                {/* Checkbox controllato dallo stato termsAccepted */}
-                                <input
-                                    type="checkbox"
-                                    id="term"
-                                    name="term"
-                                    value="term"
-                                    checked={termsAccepted}
-                                    onChange={(e) => setTermsAccepted(e.target.checked)}
-                                />
-                                {/* Cliccando il link si apre la modale Privacy & Termini */}
-                                <label htmlFor="term">
-                                    Accetto i{' '}
-                                    <a
-                                        href="#"
-                                        className={style.privacyLink}
-                                        onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }}
-                                    >
-                                        Termini del Servizio e la Privacy Policy
-                                    </a>
-                                </label>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!termsAccepted}
+                    <div className={`${style.consent} rise`} style={{ '--i': 10 }}>
+                        <input
+                            type="checkbox"
+                            id="term"
+                            name="term"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                        />
+                        <label htmlFor="term">
+                            {t('form.consentPre')}
+                            <a
+                                href="#"
+                                onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }}
                             >
-                                Invia richiesta
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </section >
-        </div >
+                                {t('form.consentLink')}
+                            </a>.
+                        </label>
+                    </div>
 
-        {/* Modale Privacy & Termini del Servizio
-            onAccept: imposta termsAccepted=true e chiude la modale */}
+                    <button type="submit" className={`${style.send} rise`} style={{ '--i': 11 }} disabled={!termsAccepted || sending}>
+                        {sending
+                            ? <><FontAwesomeIcon icon={faSpinner} spin /> {t('form.sending')}</>
+                            : t('form.send')}
+                    </button>
+                </form>
+            </section>
+        </main>
+
         <PrivacyModal
             show={showPrivacyModal}
             onClose={() => setShowPrivacyModal(false)}
@@ -320,11 +272,10 @@ function FormPage() {
             }}
         />
 
-        {/* Modale di successo mostrata dopo l'invio della prenotazione */}
         <SuccessBookingModal
             show={!!successData}
             name={successData?.name}
-            dateLabel={successData?.dateLabel}
+            date={successData?.date}
             bookingTime={successData?.bookingTime}
             onClose={() => {
                 setSuccessData(null);

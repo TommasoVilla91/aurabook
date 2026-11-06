@@ -1,7 +1,12 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
+import { computeSlotsForDate } from './lib/availability.js';
 import nodemailer from 'nodemailer';
 import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
 import { adminNotificationEmail } from './emailTemplates/adminNotification.js';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,13 +17,43 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   const { name, surname, phone, email, birthdate, booking_date, booking_time, message } = req.body;
+  const lang = req.body.lang === 'en' ? 'en' : 'it';
 
   if (!name || !surname || !phone || !email || !booking_date || !booking_time) {
     return res.status(400).json({ error: 'Missing form data' });
   }
 
+  // Endpoint pubblico: limita forma e dimensione dei campi prima di scriverli su Calendar e nelle mail.
+  const text = (v, max) => typeof v === 'string' && v.length <= max;
+  const formatsOk =
+    text(name, 80) && text(surname, 80) && text(phone, 30) && text(email, 254) &&
+    EMAIL_RE.test(email) &&
+    (birthdate === undefined || birthdate === '' || (text(birthdate, 10) && DATE_RE.test(birthdate))) &&
+    (message === undefined || text(message, 2000)) &&
+    typeof booking_date === 'string' && DATE_RE.test(booking_date) &&
+    typeof booking_time === 'string' && TIME_RE.test(booking_time);
+  if (!formatsOk) return res.status(400).json({ error: 'Invalid form data' });
+
   try {
     const calendar = await getAuthorizedCalendar();
+
+    // Rilegge il calendario al momento dell'invio: lo slot può essere stato occupato
+    // da un altro cliente o da Francesco dopo che la pagina è stata caricata.
+    const dayEvents = await calendar.events.list({
+      calendarId: process.env.GOOGLE_CALENDAR_ID,
+      timeMin: new Date(`${booking_date}T00:00:00Z`).toISOString(),
+      timeMax: new Date(`${booking_date}T23:59:59.999Z`).toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      showDeleted: false,
+    });
+    const stillFree = computeSlotsForDate(booking_date, dayEvents.data.items || []);
+    if (!stillFree.includes(booking_time)) {
+      return res.status(409).json({
+        error: 'slot_unavailable',
+        message: 'Questo orario è appena stato occupato. Scegline un altro.',
+      });
+    }
 
     // Costruisce start/end come stringhe locali (senza Z) nel fuso Europe/Rome.
     // Google Calendar interpreta dateTime nel timeZone specificato quando non c'è offset esplicito.
@@ -64,7 +99,10 @@ export default async function handler(req, res) {
       });
 
       // Mail di ricevuta al cliente
-      const { subject, html } = customerConfirmationEmail({ name, dateLabel, booking_time });
+      const customerDateLabel = new Date(y, m - 1, d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'it-IT', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      });
+      const { subject, html } = customerConfirmationEmail({ name, dateLabel: customerDateLabel, booking_time, lang });
       try {
         await transporter.sendMail({
           from: `"Francesco · Massoterapista" <${gmailUser}>`,

@@ -1,0 +1,78 @@
+.picker {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+}
+
+.centered {
+    flex: 1;
+}
+
+.centered .pills {
+    flex: 1;
+    align-content: center;
+    justify-content: center;
+}
+
+.centered .empty {
+    text-align: center;
+}
+
+.pill {
+    padding: 9px 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.pill:hover {
+    border-color: var(--moss);
+}
+
+.pill.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+}
+
+.pillSkel {
+    width: 70px;
+}
+
+.empty {
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+.cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 24px;
+    border-radius: 999px;
+    background: var(--moss);
+    color: #fff;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.cta:hover {
+    background: var(--moss-deep);
+}
+
+.cta.off {
+    background: var(--sage);
+    color: var(--muted);
+    cursor: default;
+}

@@ -1,4 +1,5 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
+import { requireAdmin } from './lib/requireAdmin.js';
 
 // Aggiunge 1 giorno a una stringa YYYY-MM-DD (per la fine esclusiva GCal sugli all-day)
 function addOneDay(dateStr) {
@@ -8,11 +9,9 @@ function addOneDay(dateStr) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!(await requireAdmin(req, res))) return;
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
 

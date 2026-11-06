@@ -1,4 +1,5 @@
 import { getAuthorizedCalendar } from './lib/googleAuth.js';
+import { requireAdmin } from './lib/requireAdmin.js';
 
 /**
  * Parsa la descrizione dell'evento calendario per estrarre i campi strutturati.
@@ -37,11 +38,9 @@ function parseSummary(summary = '') {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!(await requireAdmin(req, res))) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {

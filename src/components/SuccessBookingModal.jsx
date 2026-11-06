@@ -1,8 +1,9 @@
 import ReactDOM from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck, faCalendar, faClock, faLocationDot, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import style from './SuccessBookingModal.module.css';
+import { useLanguage } from '../i18n/useLanguage';
+import { fullDateLabel } from '../utils/dates';
 
 /**
  * SuccessBookingModal
@@ -14,11 +15,13 @@ import style from './SuccessBookingModal.module.css';
  * Props:
  *   show         {boolean}  — visibilità del modale
  *   name         {string}   — nome del cliente
- *   dateLabel    {string}   — data formattata in italiano (es. "martedì 15 aprile 2026")
+ *   date         {string}   — data della prenotazione (YYYY-MM-DD), formattata nella lingua corrente
  *   bookingTime  {string}   — orario slot (es. "10:00")
  *   onClose      {function} — callback alla chiusura (naviga a "/")
  */
-function SuccessBookingModal({ show, name, dateLabel, bookingTime, onClose }) {
+function SuccessBookingModal({ show, name, date, bookingTime, onClose }) {
+    const { t, locale } = useLanguage();
+
     if (!show) return null;
 
     return ReactDOM.createPortal(
@@ -28,64 +31,63 @@ function SuccessBookingModal({ show, name, dateLabel, bookingTime, onClose }) {
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Prenotazione inviata"
+                aria-label={t('success.aria')}
             >
                 {/* Header verde con icona check */}
                 <div className={style.header}>
                     <FontAwesomeIcon icon={faCircleCheck} className={style.checkIcon} />
                     <div>
-                        <p className={style.headerLabel}>Richiesta inviata</p>
-                        <h2 className={style.headerTitle}>Abbiamo ricevuto la tua richiesta!</h2>
+                        <p className={style.headerLabel}>{t('success.label')}</p>
+                        <h2 className={style.headerTitle}>{t('success.title')}</h2>
                     </div>
                 </div>
 
                 {/* Corpo */}
                 <div className={style.body}>
                     <p className={style.intro}>
-                        Ciao <strong>{name}</strong>, la tua richiesta di appuntamento è stata ricevuta.
-                        Francesco la verificherà al più presto e ti contatterà per{' '}
-                        <strong>confermarti la disponibilità</strong>.
+                        {t('success.hello')} <strong>{name}</strong>{t('success.introAfter')}
+                        <strong>{t('success.introStrong')}</strong>.
                     </p>
 
                     {/* Riquadro riepilogo prenotazione */}
                     <div className={style.summary}>
-                        <p className={style.summaryTitle}>Dettagli richiesta</p>
+                        <p className={style.summaryTitle}>{t('success.summary')}</p>
                         <div className={style.summaryRow}>
                             <FontAwesomeIcon icon={faCalendar} className={style.rowIcon} />
-                            <span className={style.rowLabel}>Data</span>
-                            <span className={style.rowValue}>{dateLabel}</span>
+                            <span className={style.rowLabel}>{t('success.date')}</span>
+                            <span className={style.rowValue}>{date ? fullDateLabel(date, locale) : ''}</span>
                         </div>
                         <div className={style.summaryRow}>
                             <FontAwesomeIcon icon={faClock} className={style.rowIcon} />
-                            <span className={style.rowLabel}>Orario</span>
+                            <span className={style.rowLabel}>{t('success.time')}</span>
                             <span className={style.rowValue}>{bookingTime}</span>
                         </div>
                         <div className={style.summaryRow}>
                             <FontAwesomeIcon icon={faClock} className={style.rowIcon} />
-                            <span className={style.rowLabel}>Durata</span>
-                            <span className={style.rowValue}>1 ora</span>
+                            <span className={style.rowLabel}>{t('success.duration')}</span>
+                            <span className={style.rowValue}>{t('success.durationValue')}</span>
                         </div>
                         <div className={style.summaryRow}>
                             <FontAwesomeIcon icon={faLocationDot} className={style.rowIcon} />
-                            <span className={style.rowLabel}>Indirizzo</span>
-                            <span className={style.rowValue}>Via fratelli Bronzetti, 9 – Milano</span>
+                            <span className={style.rowLabel}>{t('success.address')}</span>
+                            <span className={style.rowValue}>{t('success.addressValue')}</span>
                         </div>
                     </div>
 
                     {/* Passi successivi */}
                     <div className={style.nextSteps}>
-                        <p className={style.nextStepsTitle}>Prossimi passi</p>
+                        <p className={style.nextStepsTitle}>{t('success.next')}</p>
                         <div className={style.step}>
                             <FontAwesomeIcon icon={faArrowRight} className={style.stepIcon} />
-                            <p>Riceverai una <strong>mail di riepilogo</strong> all'indirizzo che hai indicato.</p>
+                            <p>{t('success.step1Pre')}<strong>{t('success.step1Strong')}</strong>{t('success.step1Post')}</p>
                         </div>
                         <div className={style.step}>
                             <FontAwesomeIcon icon={faArrowRight} className={style.stepIcon} />
-                            <p>Francesco ti invierà una <strong>mail di conferma separata</strong> non appena avrà verificato la disponibilità.</p>
+                            <p>{t('success.step2Pre')}<strong>{t('success.step2Strong')}</strong>{t('success.step2Post')}</p>
                         </div>
                         <div className={style.step}>
                             <FontAwesomeIcon icon={faArrowRight} className={style.stepIcon} />
-                            <p>Se hai bisogno di modificare o annullare la richiesta, <strong>rispondi direttamente alla mail</strong>.</p>
+                            <p>{t('success.step3Pre')}<strong>{t('success.step3Strong')}</strong>{t('success.step3Post')}</p>
                         </div>
                     </div>
                 </div>
@@ -93,7 +95,7 @@ function SuccessBookingModal({ show, name, dateLabel, bookingTime, onClose }) {
                 {/* Footer */}
                 <div className={style.footer}>
                     <button className={style.closeBtn} onClick={onClose}>
-                        Torna alla home
+                        {t('success.close')}
                     </button>
                 </div>
             </div>

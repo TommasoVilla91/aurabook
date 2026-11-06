@@ -7,6 +7,7 @@ import AuthCallback from "./components/AuthCallback.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import { GlobalProvider, useGlobalContext } from "./context/GlobalContext.jsx";
 import Toaster from "./components/Toaster.jsx";
+import LanguageProvider from "./i18n/LanguageProvider.jsx";
 
 // Wrapper che legge session dal GlobalContext (già gestito lì via onAuthStateChanged)
 function AppRoutes() {
@@ -32,10 +33,12 @@ function AppRoutes() {
 
 function App() {
     return (
-        <GlobalProvider>
-            <AppRoutes />
-            <Toaster />
-        </GlobalProvider>
+        <LanguageProvider>
+            <GlobalProvider>
+                <AppRoutes />
+                <Toaster />
+            </GlobalProvider>
+        </LanguageProvider>
     );
 };
 

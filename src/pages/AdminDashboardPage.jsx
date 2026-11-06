@@ -7,6 +7,7 @@ import {
     faRotateLeft, faCheck, faPenToSquare, faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons';
 import style from './AdminDashboard.module.css';
+import { adminFetch } from '../utils/adminFetch';
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -32,53 +33,130 @@ const formatRangeIT = (dateFrom, dateTo) => {
 
 const PAGE_SIZE = 10;
 
+const localDay = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const initials = (b) => `${(b.name || '')[0] || ''}${(b.surname || '')[0] || ''}`.toUpperCase() || '—';
+
+const BOOKING_FILTERS = [
+    { key: 'future', label: 'Attuali e future', test: (b, now) => new Date(b.startISO) >= now },
+    { key: 'today',  label: 'Oggi',             test: (b, now) => b.startISO.split('T')[0] === localDay(now) },
+    { key: 'past',   label: 'Passate',          test: (b, now) => new Date(b.startISO) < now },
+];
+
+const VACATION_FILTERS = [
+    { key: 'all',      label: 'Tutti',         test: () => true },
+    { key: 'vacation', label: 'Ferie',         test: (v) => v.type !== 'partial-block' },
+    { key: 'partial',  label: 'Blocchi orari', test: (v) => v.type === 'partial-block' },
+];
+
+// Un filtro è attivo solo se ha elementi da gestire; se quello scelto si svuota si passa al primo disponibile.
+function pickFilter(options, wanted) {
+    const chosen = options.find((o) => o.key === wanted && o.count > 0);
+    return (chosen || options.find((o) => o.count > 0) || options[0]).key;
+}
+
+function FilterChips({ options, value, onChange, label }) {
+    return (
+        <div className={style.filterBar} role="group" aria-label={label}>
+            {options.map((o) => (
+                <button
+                    key={o.key}
+                    type="button"
+                    className={`${style.chip}${o.key === value ? ` ${style.chipOn}` : ''}`}
+                    aria-pressed={o.key === value}
+                    disabled={o.count === 0}
+                    title={o.count === 0 ? 'Nessun elemento da gestire' : undefined}
+                    onClick={() => onChange(o.key)}
+                >
+                    {o.label}
+                    <span className={style.chipCount}>{o.count}</span>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function SkeletonRows({ count = 4 }) {
+    return (
+        <div className={style.skelList} aria-busy="true" aria-label="Caricamento">
+            {Array.from({ length: count }, (_, i) => (
+                <span key={i} className={`${style.skelRow} skel`} style={{ '--i': i }} />
+            ))}
+        </div>
+    );
+}
+
 // ─────────────────────────────────────────────────────────────
 // Componente principale
 // ─────────────────────────────────────────────────────────────
 
+const TABS = [
+    { key: 'prenotazioni', label: 'Prenotazioni',     icon: faCalendarDays },
+    { key: 'orari',        label: 'Orari',            icon: faSliders },
+    { key: 'ferie',        label: 'Ferie e permessi', icon: faUmbrellaBeach },
+];
+
 function AdminDashboardPage() {
-    const [activeTab, setActiveTab] = useState('ferie');
+    const [activeTab, setActiveTab] = useState('prenotazioni');
+    const [version, setVersion]     = useState(0);
+    const [counts, setCounts]       = useState({ prenotazioni: null, ferie: null });
+
+    const refresh = useCallback(() => setVersion((v) => v + 1), []);
+
+    // Conteggi mostrati nelle tab: si aggiornano dopo ogni modifica fatta dai pannelli
+    useEffect(() => {
+        let cancelled = false;
+        Promise.all([
+            adminFetch('/api/get-bookings').then((r) => r.json()).catch(() => null),
+            adminFetch('/api/manage-vacation').then((r) => r.json()).catch(() => null),
+        ]).then(([b, v]) => {
+            if (cancelled) return;
+            const now = new Date();
+            setCounts({
+                prenotazioni: b?.bookings ? b.bookings.filter((x) => x.startISO && new Date(x.startISO) >= now).length : 0,
+                ferie: v?.vacations ? v.vacations.length : 0,
+            });
+        });
+        return () => { cancelled = true; };
+    }, [version]);
 
     return (
         <div className={style.page}>
             <div className={style.container}>
 
                 <header className={style.header}>
-                    <div>
-                        <p className={style.headerLabel}>Area riservata</p>
-                        <h1 className={style.headerTitle}>Dashboard</h1>
-                    </div>
+                    <h1 className={`${style.headerTitle} rise`} style={{ '--i': 1 }}>Area riservata</h1>
+                    <p className={`${style.headerSub} rise`} style={{ '--i': 2 }}>
+                        Gestisci prenotazioni, orari e ferie.
+                    </p>
                 </header>
 
-                {/* Tab bar */}
-                <div className={style.tabs}>
-                    <button
-                        className={`${style.tab} ${activeTab === 'ferie' ? style.tabActive : ''}`}
-                        onClick={() => setActiveTab('ferie')}
-                    >
-                        <FontAwesomeIcon icon={faUmbrellaBeach} />
-                        {/* Su mobile il testo va su 2 righe per stare nella colonna */}
-                        <span className={style.tabLabel}>Gestione<br />permessi</span>
-                    </button>
-                    <button
-                        className={`${style.tab} ${activeTab === 'prenotazioni' ? style.tabActive : ''}`}
-                        onClick={() => setActiveTab('prenotazioni')}
-                    >
-                        <FontAwesomeIcon icon={faCalendarDays} />
-                        <span className={style.tabLabel}>Prenotazioni</span>
-                    </button>
-                    <button
-                        className={`${style.tab} ${activeTab === 'orari' ? style.tabActive : ''}`}
-                        onClick={() => setActiveTab('orari')}
-                    >
-                        <FontAwesomeIcon icon={faSliders} />
-                        <span className={style.tabLabel}>Orari</span>
-                    </button>
+                <div className={`${style.tabs} rise`} style={{ '--i': 3 }} role="tablist" aria-label="Sezioni">
+                    {TABS.map((t) => (
+                        <button
+                            key={t.key}
+                            role="tab"
+                            aria-selected={activeTab === t.key}
+                            className={`${style.tab} ${activeTab === t.key ? style.tabActive : ''}`}
+                            onClick={() => setActiveTab(t.key)}
+                        >
+                            <FontAwesomeIcon icon={t.icon} />
+                            <span className={style.tabLabel}>{t.label}</span>
+                            {t.key in counts && (
+                                <span className={`${style.count}${counts[t.key] === null ? ' skel' : ''}`}>
+                                    {counts[t.key] === null ? '0' : counts[t.key]}
+                                </span>
+                            )}
+                        </button>
+                    ))}
                 </div>
 
-                {activeTab === 'ferie'        && <FerieTab />}
-                {activeTab === 'prenotazioni' && <PrenotazioniTab />}
-                {activeTab === 'orari'        && <SlotOverrideTab />}
+                <div key={activeTab} className="page-enter">
+                    {activeTab === 'prenotazioni' && <PrenotazioniTab onChange={refresh} />}
+                    {activeTab === 'orari'        && <SlotOverrideTab />}
+                    {activeTab === 'ferie'        && <FerieTab onChange={refresh} />}
+                </div>
 
             </div>
         </div>
@@ -89,7 +167,7 @@ function AdminDashboardPage() {
 // Tab Permessi / Ferie
 // ─────────────────────────────────────────────────────────────
 
-function FerieTab() {
+function FerieTab({ onChange }) {
     const [vacations, setVacations]     = useState([]);
     const [loadingList, setLoadingList] = useState(true);
     const [dateFrom, setDateFrom]       = useState('');
@@ -100,12 +178,13 @@ function FerieTab() {
     const [adding, setAdding]           = useState(false);
     const [removingId, setRemovingId]   = useState(null);
     const [error, setError]             = useState(null);
+    const [filter, setFilter]           = useState('all');
 
     const fetchVacations = useCallback(async () => {
         setLoadingList(true);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-vacation');
+            const res  = await adminFetch('/api/manage-vacation');
             const data = await res.json();
             if (!res.ok) throw new Error(data.details || data.error || 'Errore caricamento');
             setVacations(data.vacations);
@@ -147,7 +226,7 @@ function FerieTab() {
                 ? { dateFrom, timeFrom, timeTo }
                 : { dateFrom, dateTo: dateTo || dateFrom };
 
-            const res  = await fetch('/api/manage-vacation', {
+            const res  = await adminFetch('/api/manage-vacation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
@@ -157,6 +236,7 @@ function FerieTab() {
             setVacations((prev) =>
                 [...prev, data.vacation].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom))
             );
+            onChange?.();
             setDateFrom(''); setDateTo(''); setTimeFrom(''); setTimeTo('');
             setIsPartial(false);
         } catch (err) {
@@ -164,13 +244,13 @@ function FerieTab() {
         } finally {
             setAdding(false);
         }
-    }, [isAddDisabled, isPartial, dateFrom, dateTo, timeFrom, timeTo]);
+    }, [isAddDisabled, isPartial, dateFrom, dateTo, timeFrom, timeTo, onChange]);
 
     const handleRemove = useCallback(async (eventId) => {
         setRemovingId(eventId);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-vacation', {
+            const res  = await adminFetch('/api/manage-vacation', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ eventId }),
@@ -178,12 +258,17 @@ function FerieTab() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Errore rimozione');
             setVacations((prev) => prev.filter((v) => v.id !== eventId));
+            onChange?.();
         } catch (err) {
             setError(err.message);
         } finally {
             setRemovingId(null);
         }
-    }, []);
+    }, [onChange]);
+
+    const vacationOptions = VACATION_FILTERS.map((f) => ({ ...f, count: vacations.filter(f.test).length }));
+    const activeVacationFilter = pickFilter(vacationOptions, filter);
+    const visibleVacations = vacations.filter(VACATION_FILTERS.find((f) => f.key === activeVacationFilter).test);
 
     return (
         <div className={style.tabContent}>
@@ -279,25 +364,33 @@ function FerieTab() {
             {error && <p className={style.errorMsg}>{error}</p>}
 
             {/* Lista */}
+            {!loadingList && vacations.length > 0 && (
+                <FilterChips
+                    label="Filtra ferie e blocchi"
+                    options={vacationOptions}
+                    value={activeVacationFilter}
+                    onChange={setFilter}
+                />
+            )}
+
             <div className={style.vacationList}>
                 {loadingList ? (
-                    <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento…</p>
+                    <SkeletonRows count={3} />
                 ) : vacations.length === 0 ? (
-                    <p className={style.emptyMsg}>Nessun periodo o blocco orario programmato.</p>
+                    <p className={style.emptyMsg}>Nessun periodo o blocco orario programmato. Aggiungine uno qui sopra.</p>
                 ) : (
-                    vacations.map((v) => (
-                        <div key={v.id} className={style.vacationRow}>
+                    visibleVacations.map((v, i) => (
+                        <div key={v.id} className={`${style.vacationRow} pop`} style={{ '--i': i }}>
                             <FontAwesomeIcon
                                 icon={v.type === 'partial-block' ? faClock : faUmbrellaBeach}
                                 className={style.vacationIcon}
                             />
                             <span className={style.vacationDate}>
                                 {v.type === 'partial-block'
-                                    ? `${formatDateIT(v.dateFrom)} · ${v.timeFrom}–${v.timeTo}`
+                                    ? `${formatDateIT(v.dateFrom)}, ${v.timeFrom}–${v.timeTo}`
                                     : formatRangeIT(v.dateFrom, v.dateTo)
                                 }
                             </span>
-                            {/* Badge tipo */}
                             <span className={`${style.typeBadge} ${v.type === 'partial-block' ? style.badgePartial : style.badgeVacation}`}>
                                 {v.type === 'partial-block' ? 'Orario' : 'Ferie'}
                             </span>
@@ -306,6 +399,7 @@ function FerieTab() {
                                 onClick={() => handleRemove(v.id)}
                                 disabled={removingId === v.id}
                                 title="Rimuovi"
+                                aria-label="Rimuovi"
                             >
                                 {removingId === v.id
                                     ? <FontAwesomeIcon icon={faSpinner} spin />
@@ -325,13 +419,11 @@ function FerieTab() {
 // ─────────────────────────────────────────────────────────────
 
 const COLUMNS = [
-    { key: 'date',    label: 'Data',     sortType: 'date'   },
-    { key: 'time',    label: 'Orario',   sortType: 'string' },
-    { key: 'name',    label: 'Nome',     sortType: 'string' },
-    { key: 'surname', label: 'Cognome',  sortType: 'string' },
-    { key: 'phone',   label: 'Telefono', sortType: null     },
-    { key: 'email',   label: 'Email',    sortType: 'string' },
-    { key: 'actions', label: 'Azioni',   sortType: null     },
+    { key: 'date',     label: 'Data',     sortType: 'date'   },
+    { key: 'time',     label: 'Ora',      sortType: 'string' },
+    { key: 'name',     label: 'Cliente',  sortType: 'string' },
+    { key: 'contacts', label: 'Contatti', sortType: null     },
+    { key: 'actions',  label: '',         sortType: null     },
 ];
 
 function SortIcon({ col, sortKey, sortDir }) {
@@ -342,7 +434,7 @@ function SortIcon({ col, sortKey, sortDir }) {
         : <FontAwesomeIcon icon={faSortDown} className={`${style.sortIcon} ${style.sortActive}`} />;
 }
 
-function PrenotazioniTab() {
+function PrenotazioniTab({ onChange }) {
     const [allBookings, setAllBookings]     = useState([]);
     const [loading, setLoading]             = useState(true);
     const [error, setError]                 = useState(null);
@@ -369,7 +461,7 @@ function PrenotazioniTab() {
         setLoading(true);
         setError(null);
         try {
-            const res  = await fetch('/api/get-bookings');
+            const res  = await adminFetch('/api/get-bookings');
             const data = await res.json();
             if (!res.ok) throw new Error(data.details || data.error || 'Errore caricamento prenotazioni');
             setAllBookings(data.bookings);
@@ -381,7 +473,17 @@ function PrenotazioniTab() {
     }, []);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
-    useEffect(() => { setPage(1); }, [filter, sortKey, sortDir, appliedSearch]);
+
+    const bookingOptions = useMemo(() => {
+        const now = new Date();
+        return BOOKING_FILTERS.map((f) => ({
+            ...f,
+            count: allBookings.filter((b) => b.startISO && f.test(b, now)).length,
+        }));
+    }, [allBookings]);
+    const effectiveFilter = pickFilter(bookingOptions, filter);
+
+    useEffect(() => { setPage(1); }, [effectiveFilter, sortKey, sortDir, appliedSearch]);
 
     const handleSort = useCallback((col) => {
         if (col.sortType === null) return;
@@ -397,13 +499,15 @@ function PrenotazioniTab() {
     const handleDeleteSuccess = useCallback((id) => {
         setAllBookings((prev) => prev.filter((b) => b.id !== id));
         setDeletingBooking(null);
-    }, []);
+        onChange?.();
+    }, [onChange]);
 
     // Callback: prenotazione modificata con successo → aggiorna la riga
     const handleEditSuccess = useCallback((updatedBooking) => {
         setAllBookings((prev) => prev.map((b) => b.id === updatedBooking.id ? updatedBooking : b));
         setEditingBooking(null);
-    }, []);
+        onChange?.();
+    }, [onChange]);
 
     // Callback: conflitto di slot durante la modifica → mostra AlertModal
     const handleConflict = useCallback((msg) => {
@@ -430,11 +534,8 @@ function PrenotazioniTab() {
         const now = new Date();
 
         // 1. Filtro future/passate
-        let filtered = allBookings.filter((b) => {
-            if (!b.startISO) return false;
-            const start = new Date(b.startISO);
-            return filter === 'future' ? start >= now : start < now;
-        });
+        const active = BOOKING_FILTERS.find((f) => f.key === effectiveFilter);
+        let filtered = allBookings.filter((b) => b.startISO && active.test(b, now));
 
         // 2. Filtri di ricerca (solo quando applicati con "Cerca")
         if (appliedSearch) {
@@ -462,7 +563,7 @@ function PrenotazioniTab() {
             const cmp = va.localeCompare(vb, 'it', { numeric: true, sensitivity: 'base' });
             return sortDir === 'asc' ? cmp : -cmp;
         });
-    }, [allBookings, filter, sortKey, sortDir, appliedSearch]);
+    }, [allBookings, effectiveFilter, sortKey, sortDir, appliedSearch]);
 
     const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const pageRows   = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -470,22 +571,32 @@ function PrenotazioniTab() {
     return (
         <div className={style.tabContent}>
 
-            {/* ── Toggle ricerca — visibile solo su mobile via CSS ── */}
-            <button
-                className={`${style.searchToggleBtn}${appliedSearch ? ` ${style.searchToggleBtnActive}` : ''}`}
-                onClick={() => setSearchOpen((o) => !o)}
-            >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
-                <span>{searchOpen ? 'Nascondi filtri' : 'Cerca / Filtra'}</span>
-                {appliedSearch && <span className={style.searchActiveDot} />}
-            </button>
+            {/* ── Filtri a pillola (si spengono se non c'è nulla da gestire) e ricerca ── */}
+            <div className={style.toolbar}>
+                {!loading && allBookings.length > 0 ? (
+                    <FilterChips
+                        label="Filtra prenotazioni"
+                        options={bookingOptions}
+                        value={effectiveFilter}
+                        onChange={setFilter}
+                    />
+                ) : <span />}
+                <button
+                    className={`${style.searchToggleBtn}${appliedSearch ? ` ${style.searchToggleBtnActive}` : ''}`}
+                    onClick={() => setSearchOpen((o) => !o)}
+                    aria-expanded={searchOpen}
+                >
+                    <FontAwesomeIcon icon={faMagnifyingGlass} />
+                    <span>{searchOpen ? 'Nascondi ricerca' : 'Cerca'}</span>
+                    {appliedSearch && <span className={style.searchActiveDot} />}
+                </button>
+            </div>
 
             {/* ── Area ricerca ── */}
             <div className={`${style.searchArea}${searchOpen ? ` ${style.searchAreaOpen}` : ''}`}>
-                {/* Riga 1: searchbar + date */}
                 <div className={style.searchRow}>
                     <div className={style.searchField}>
-                        <label className={style.dateLabel}>Cerca per nome, cognome o email</label>
+                        <label className={style.dateLabel}>Nome, cognome o email</label>
                         <input
                             type="text"
                             className={style.dateInput}
@@ -516,7 +627,6 @@ function PrenotazioniTab() {
                     </div>
                 </div>
 
-                {/* Riga 2: time range + bottoni */}
                 <div className={style.searchRow}>
                     <div className={style.searchField}>
                         <label className={style.dateLabel}>Dalle ore</label>
@@ -539,7 +649,7 @@ function PrenotazioniTab() {
                     </div>
                     <div className={style.searchActions}>
                         <button className={style.searchResetBtn} onClick={handleReset}>
-                            Reset
+                            Azzera
                         </button>
                         <button className={style.addBtn} onClick={handleSearch}>
                             Cerca
@@ -547,53 +657,49 @@ function PrenotazioniTab() {
                     </div>
                 </div>
 
-                {/* Badge risultati attivi */}
                 {appliedSearch && (
                     <p className={style.searchResultNote}>
                         {rows.length === 0
-                            ? 'Nessun risultato trovato per i filtri selezionati.'
-                            : `${rows.length} prenotazion${rows.length === 1 ? 'e' : 'i'} trovat${rows.length === 1 ? 'a' : 'e'}.`
+                            ? 'Nessun risultato per i filtri scelti.'
+                            : `${rows.length} prenotazion${rows.length === 1 ? 'e trovata' : 'i trovate'}.`
                         }
                     </p>
                 )}
             </div>
 
-            {/* ── Filtro future/passate ── */}
-            <div className={style.bookingFilters}>
-                <button
-                    className={`${style.filterBtn} ${filter === 'future' ? style.filterActive : ''}`}
-                    onClick={() => setFilter('future')}
-                >Attuali e future</button>
-                <button
-                    className={`${style.filterBtn} ${filter === 'past' ? style.filterActive : ''}`}
-                    onClick={() => setFilter('past')}
-                >Passate</button>
-            </div>
-
             {loading ? (
-                <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento…</p>
+                <SkeletonRows count={5} />
             ) : error ? (
                 <p className={style.errorMsg}>{error}</p>
             ) : rows.length === 0 ? (
-                <p className={style.emptyMsg}>Nessuna prenotazione trovata.</p>
+                <p className={style.emptyMsg}>
+                    {allBookings.length === 0
+                        ? 'Nessuna prenotazione da gestire. Le nuove richieste compariranno qui.'
+                        : 'Nessuna prenotazione trovata.'}
+                </p>
             ) : (
                 <>
-                    {/* ── Vista card — visibile solo su mobile via CSS ── */}
+                    {/* ── Vista compatta per telefono ── */}
                     <div className={style.bookingCards}>
-                        {pageRows.map((b) => (
-                            <div
+                        {pageRows.map((b, i) => (
+                            <button
                                 key={b.id}
-                                className={style.bookingCard}
+                                type="button"
+                                className={`${style.bookingCard} pop`}
+                                style={{ '--i': i }}
                                 onClick={() => setDetailBooking(b)}
                             >
-                                <span className={style.cardDate}>{b.date}</span>
+                                <span className={style.avatar}>{initials(b)}</span>
+                                <span className={style.cardMain}>
+                                    <span className={style.cardName}>{b.name} {b.surname}</span>
+                                    <span className={style.cardDate}>{b.date}</span>
+                                </span>
                                 <span className={style.cardTime}>{b.time}</span>
-                                <span className={style.cardName}>{b.name} {b.surname}</span>
-                            </div>
+                            </button>
                         ))}
                     </div>
 
-                    {/* ── Vista tabella — visibile solo su desktop via CSS ── */}
+                    {/* ── Tabella compatta per schermi larghi ── */}
                     <div className={style.tableWrapper}>
                         <table className={style.table}>
                             <thead>
@@ -611,25 +717,28 @@ function PrenotazioniTab() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {pageRows.map((b) => (
+                                {pageRows.map((b, i) => (
                                     <tr
                                         key={b.id}
-                                        className={style.tr}
+                                        className={`${style.tr} pop`}
+                                        style={{ '--i': i }}
                                         onClick={() => setDetailBooking(b)}
                                     >
-                                        <td className={style.td}>{b.date}</td>
-                                        <td className={style.td}>{b.time}</td>
-                                        <td className={style.td}>{b.name}</td>
-                                        <td className={style.td}>{b.surname}</td>
+                                        <td className={`${style.td} ${style.tdStrong}`}>{b.date}</td>
+                                        <td className={`${style.td} ${style.tdTime}`}>{b.time}</td>
                                         <td className={style.td}>
+                                            <span className={style.client}>
+                                                <span className={style.avatar}>{initials(b)}</span>
+                                                {b.name} {b.surname}
+                                            </span>
+                                        </td>
+                                        <td className={`${style.td} ${style.tdContacts}`} onClick={(e) => e.stopPropagation()}>
                                             {b.phone !== '—'
                                                 ? <a href={`tel:${b.phone}`} className={style.contactLink}>{b.phone}</a>
                                                 : '—'}
-                                        </td>
-                                        <td className={style.td}>
-                                            {b.email !== '—'
-                                                ? <a href={`mailto:${b.email}`} className={style.contactLink}>{b.email}</a>
-                                                : '—'}
+                                            {b.email !== '—' && (
+                                                <a href={`mailto:${b.email}`} className={`${style.contactLink} ${style.contactSub}`}>{b.email}</a>
+                                            )}
                                         </td>
                                         {/* stopPropagation: evita che il click apra il dettaglio quando si preme modifica/elimina */}
                                         <td className={style.td} onClick={(e) => e.stopPropagation()}>
@@ -638,6 +747,7 @@ function PrenotazioniTab() {
                                                     className={`${style.actionBtn} ${style.actionBtnEdit}`}
                                                     onClick={() => setEditingBooking(b)}
                                                     title="Modifica prenotazione"
+                                                    aria-label={`Modifica la prenotazione di ${b.name} ${b.surname}`}
                                                 >
                                                     <FontAwesomeIcon icon={faPenToSquare} />
                                                 </button>
@@ -645,6 +755,7 @@ function PrenotazioniTab() {
                                                     className={`${style.actionBtn} ${style.actionBtnDelete}`}
                                                     onClick={() => setDeletingBooking(b)}
                                                     title="Elimina prenotazione"
+                                                    aria-label={`Elimina la prenotazione di ${b.name} ${b.surname}`}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} />
                                                 </button>
@@ -656,28 +767,32 @@ function PrenotazioniTab() {
                         </table>
                     </div>
 
-                    {totalPages > 1 && (
-                        <div className={style.pagination}>
-                            <button
-                                className={style.pageBtn}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >
-                                <FontAwesomeIcon icon={faChevronLeft} />
-                            </button>
-                            <span className={style.pageInfo}>
-                                Pagina <strong>{page}</strong> di <strong>{totalPages}</strong>
-                                <span className={style.pageCount}> · {rows.length} prenotazioni</span>
-                            </span>
-                            <button
-                                className={style.pageBtn}
-                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                            >
-                                <FontAwesomeIcon icon={faChevronRight} />
-                            </button>
-                        </div>
-                    )}
+                    <div className={style.pagination}>
+                        <span className={style.pageInfo}>
+                            {rows.length} prenotazion{rows.length === 1 ? 'e' : 'i'}
+                            {totalPages > 1 && <span className={style.pageCount}>, pagina {page} di {totalPages}</span>}
+                        </span>
+                        {totalPages > 1 && (
+                            <div className={style.pageBtns}>
+                                <button
+                                    className={style.pageBtn}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    aria-label="Pagina precedente"
+                                >
+                                    <FontAwesomeIcon icon={faChevronLeft} />
+                                </button>
+                                <button
+                                    className={style.pageBtn}
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    aria-label="Pagina successiva"
+                                >
+                                    <FontAwesomeIcon icon={faChevronRight} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </>
             )}
 
@@ -795,7 +910,7 @@ function DeleteConfirmModal({ booking, onConfirm, onCancel }) {
         setDeleting(true);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-booking', {
+            const res  = await adminFetch('/api/manage-booking', {
                 method:  'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ eventId: booking.id }),
@@ -820,7 +935,7 @@ function DeleteConfirmModal({ booking, onConfirm, onCancel }) {
                         <strong>{booking.date}</strong>?
                     </p>
                     <p className={style.modalNote}>
-                        L'evento verrà rimosso definitivamente da Google Calendar.
+                        La prenotazione verrà rimossa dall'agenda e non si può recuperare.
                     </p>
                     {error && <p className={style.errorMsg}>{error}</p>}
                 </div>
@@ -867,7 +982,7 @@ function EditBookingModal({ booking, onSave, onCancel, onConflict }) {
         setSaving(true);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-booking', {
+            const res  = await adminFetch('/api/manage-booking', {
                 method:  'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ eventId: booking.id, ...form }),
@@ -993,7 +1108,7 @@ function SlotOverrideTab() {
         setLoadingSlots(true);
         try {
             // Verifica se esiste un override per questa data
-            const overRes  = await fetch(`/api/manage-slot-override?date=${val}`);
+            const overRes  = await adminFetch(`/api/manage-slot-override?date=${val}`);
             const overData = await overRes.json();
             if (!overRes.ok) throw new Error(overData.details || overData.error || 'Errore caricamento override');
 
@@ -1044,7 +1159,7 @@ function SlotOverrideTab() {
         setSaving(true);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-slot-override', {
+            const res  = await adminFetch('/api/manage-slot-override', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ date: selectedDate, slots }),
@@ -1067,7 +1182,7 @@ function SlotOverrideTab() {
         setResetting(true);
         setError(null);
         try {
-            const res  = await fetch('/api/manage-slot-override', {
+            const res  = await adminFetch('/api/manage-slot-override', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ eventId: overrideId }),
@@ -1110,14 +1225,14 @@ function SlotOverrideTab() {
             {selectedDate && (
                 <>
                     {loadingSlots ? (
-                        <p className={style.emptyMsg}><FontAwesomeIcon icon={faSpinner} spin /> Caricamento slot…</p>
+                        <SkeletonRows count={3} />
                     ) : (
                         <>
                             {/* Banner informativo: standard vs override */}
                             <div className={`${style.overrideBanner} ${isStandard ? style.bannerStandard : style.bannerOverride}`}>
                                 {isStandard
-                                    ? '📅 Slot generati automaticamente dalla disponibilità standard. Modifica e salva per personalizzarli.'
-                                    : '✏️ Stai visualizzando gli slot personalizzati per questo giorno.'}
+                                    ? 'Slot generati dalla disponibilità standard. Modifica e salva per personalizzarli.'
+                                    : 'Stai vedendo gli slot personalizzati per questo giorno.'}
                             </div>
 
                             {/* Lista slot con rimozione */}

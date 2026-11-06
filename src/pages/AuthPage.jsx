@@ -3,6 +3,9 @@ import { auth } from '../firebaseClient.js';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { toast } from '../utils/toast';
 
 
 function LoginPage() {
@@ -13,7 +16,6 @@ function LoginPage() {
 
     const navigate = useNavigate();
 
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -21,7 +23,7 @@ function LoginPage() {
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/admin-dashboard');
         } catch (error) {
-            alert(error.message);
+            toast.error('Accesso non riuscito: ' + error.message);
         }
         setLoading(false);
     };
@@ -33,58 +35,58 @@ function LoginPage() {
             await signInWithPopup(auth, provider);
             navigate('/admin-dashboard');
         } catch (error) {
-            alert('Errore con Google login: ' + error.message);
+            toast.error('Errore con Google login: ' + error.message);
             setLoading(false);
         }
     };
 
-
     return (
-        <div className={styles.background}>
-            <div className={styles.loginArea}>
-                <form
-                    className={styles.loginBox}
-                    onSubmit={handleLogin}
-                >
+        <main className={styles.page}>
+            <section className={`${styles.card} rise`} style={{ '--i': 1 }}>
+                <div className={`${styles.arch} rise`} style={{ '--i': 2 }} aria-hidden="true" />
+                <h1 className="rise" style={{ '--i': 3 }}>Area riservata</h1>
+                <p className="rise" style={{ '--i': 4 }}>Accedi per gestire prenotazioni, orari e ferie.</p>
 
-                    <div className={styles.user}>
-                        <label htmlFor="">Email</label>
+                <form className={`${styles.form} rise`} style={{ '--i': 5 }} onSubmit={handleLogin}>
+                    <div className={styles.field}>
+                        <label htmlFor="login-email">Email</label>
                         <input
+                            id="login-email"
                             type="email"
+                            autoComplete="username"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>
-
-                    <div className={styles.password}>
-                        <label htmlFor="">Password</label>
+                    <div className={styles.field}>
+                        <label htmlFor="login-password">Password</label>
                         <input
+                            id="login-password"
                             type="password"
+                            autoComplete="current-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
                     </div>
-
-                    <button
-                        className={styles.loginBtn}
-                        type='submit'
-                        disabled={loading}
-                    >
-                        Accedi
+                    <button className={styles.loginBtn} type="submit" disabled={loading}>
+                        {loading ? <><FontAwesomeIcon icon={faSpinner} spin /> Accesso in corso</> : 'Accedi'}
                     </button>
                 </form>
 
+                <span className={styles.or} aria-hidden="true">oppure</span>
+
                 <button
+                    className={styles.googleBtn}
+                    type="button"
                     onClick={handleGoogleLogin}
                     disabled={loading}
-                    className={styles.googleBtn}>
-                    {loading ? 'Caricamento...' : 'Accedi con Google'}
+                >
+                    Accedi con Google
                 </button>
-
-            </div>
-        </div>
+            </section>
+        </main>
     );
 };
 

@@ -1,200 +1,137 @@
-/* =====================================================
-   AuthPage — pagina di login massoterapista
-   ===================================================== */
-
-.background {
-    min-height: 100vh;
+.page {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
-
-    /* Stesso sfondo erboso di FormPage con overlay verde scuro */
-    background-image:
-        linear-gradient(135deg, rgba(56, 75, 52, 0.72) 0%, rgba(90, 123, 86, 0.65) 100%),
-        url('/hero-frenk.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    min-height: calc(100vh - 140px);
+    padding: 32px 20px 64px;
 }
 
-/* ── Card principale (contiene form + tasto Google) ── */
-.loginArea {
+.card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
     width: 100%;
     max-width: 440px;
-
-    /* Glassmorphism — coerente con il calendario in home */
-    background: rgba(247, 255, 237, 0.78);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 20px;
-    box-shadow:
-        0 8px 32px rgba(56, 75, 52, 0.28),
-        0 1px 0 rgba(255, 255, 255, 0.6) inset;
-    overflow: hidden;
-}
-
-/* ── Form (email + password + Accedi) ── */
-.loginBox {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 2.5rem 2.5rem 1.75rem;
-    background: transparent;
-    border: none;
-    color: #2d3a2b;
-}
-
-/* Titolo implicito — aggiunto tramite ::before per non toccare il JSX */
-.loginBox::before {
-    content: 'Area riservata';
-    display: block;
-    width: 100%;
+    padding: 36px 32px 40px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 32px;
+    box-shadow: 0 28px 60px -38px rgba(58, 85, 55, 0.45);
     text-align: center;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #5a7b56;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.25rem;
 }
 
-/* ── Campi email e password ── */
-.user,
-.password {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 0.3rem;
+.arch {
+    width: 96px;
+    height: 120px;
+    margin-bottom: 24px;
+    border-radius: 999px 999px 18px 18px;
+    background: url(/hero-2.jpg) 40% center / cover;
 }
 
-.user label,
-.password label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #3a5537;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+.card h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 2.2rem;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
 }
 
-.user input,
-.password input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.65rem 0.9rem;
-    border-radius: 8px;
-    border: 1px solid #b8d890;
-    background-color: rgba(255, 255, 255, 0.7);
-    font-size: 1rem;
-    color: #2d3a2b;
-    outline: none;
-    transition: border-color 0.18s, box-shadow 0.18s;
+.card > p {
+    margin: 12px 0 28px;
+    color: var(--muted);
 }
 
-.user input:focus,
-.password input:focus {
-    border-color: #5a7b56;
-    box-shadow: 0 0 0 3px rgba(90, 123, 86, 0.15);
-    background-color: rgba(255, 255, 255, 0.9);
-}
-
-/* ── Tasto Accedi ── */
 .loginBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.7rem 1rem;
-    border-radius: 8px;
-    border: none;
-    background-color: #5a7b56;
-    color: #f7ffed;
-    cursor: pointer;
+    padding: 15px 24px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--moss);
+    color: #fff;
     font-size: 1rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
-    transition: background-color 0.18s, transform 0.1s;
+    transition: background 0.2s;
 }
 
 .loginBtn:hover:not(:disabled) {
-    background-color: #435a40;
-}
-
-.loginBtn:active:not(:disabled) {
-    transform: scale(0.98);
+    background: var(--moss-deep);
 }
 
 .loginBtn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+    background: var(--sage);
+    color: var(--muted);
+    cursor: default;
 }
 
-/* ── Separatore ── */
-.loginArea::after {
-    content: '';
-    display: block;
-    width: calc(100% - 5rem);
-    height: 1px;
-    background: rgba(90, 123, 86, 0.2);
-    margin: 0 2.5rem;
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    text-align: left;
 }
 
-/* ── Tasto Accedi con Google ── */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.field label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.field input {
+    width: 100%;
+    padding: 8px 0 10px;
+    border: 0;
+    border-bottom: 1.5px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 1.05rem;
+    outline: 0;
+    transition: border-color 0.2s;
+}
+
+.field input:focus {
+    border-bottom-color: var(--moss);
+}
+
+.form .loginBtn {
+    margin-top: 6px;
+}
+
+.or {
+    margin: 18px 0 14px;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
 .googleBtn {
-    width: calc(100% - 5rem);
-    margin: 1.25rem 2.5rem 2rem;
-    padding: 0.65rem 1rem;
-    border-radius: 8px;
-    border: 1.5px solid #5a7b56;
-    background: rgba(255, 255, 255, 0.6);
-    color: #3a5537;
-    cursor: pointer;
-    font-size: 0.95rem;
+    width: 100%;
+    padding: 14px 24px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 1rem;
     font-weight: 600;
-    transition: background-color 0.18s, border-color 0.18s;
-    box-sizing: border-box;
+    transition: border-color 0.2s, background 0.2s;
 }
 
 .googleBtn:hover:not(:disabled) {
-    background-color: rgba(90, 123, 86, 0.12);
-    border-color: #435a40;
+    border-color: var(--moss);
+    background: var(--soft);
 }
 
 .googleBtn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-/* =====================================================
-   MOBILE  ≤ 480px
-   ===================================================== */
-@media (max-width: 480px) {
-    .background {
-        padding: 0;
-        align-items: flex-start;
-        background-attachment: scroll; /* fixed non funziona bene su iOS */
-    }
-
-    .loginArea {
-        max-width: 100%;
-        min-height: 100vh;
-        border-radius: 0;
-        box-shadow: none;
-        border: none;
-        justify-content: center;
-    }
-
-    .loginBox {
-        padding: 2rem 1.5rem 1.5rem;
-    }
-
-    .googleBtn {
-        width: calc(100% - 3rem);
-        margin: 1rem 1.5rem 2rem;
-    }
+    color: var(--muted);
+    cursor: default;
 }
