@@ -70,3 +70,13 @@ Accessibile via Firebase Authentication. Il professionista può effettuare il lo
 
 L'applicazione è deployata su **Vercel** con deploy automatico dal branch `main` di GitHub.  
 Il proxy Vite in sviluppo locale (`vite.config.js`) inoltra le chiamate `/api` verso il deployment Vercel di produzione.
+
+---
+
+## Da fare prima del lancio
+
+- **Rimuovere il `noindex`**: il sito è escluso da Google di proposito. Va tolto in due punti: il tag `<meta name="robots" content="noindex, nofollow" />` in `index.html` e l'header `X-Robots-Tag` in `vercel.json`.
+- **Variabili Vercel in Production**: `ADMIN_EMAILS` (o `ADMIN_EMAIL`) con la mail di login dell'admin, senza la quale l'area riservata risponde 403; `CRON_SECRET`, senza il quale il cron risponde 401; `VITE_SENTRY_DSN` per il monitoraggio errori.
+- **Chiavi**: ruotare la chiave del service account Google e la password per le app Gmail, poi eliminare quelle vecchie.
+- **Firebase**: disattivare la creazione di nuovi account da Authentication, e aggiungere ai domini autorizzati quelli da cui si accede.
+- **Privacy**: completare i segnaposto rimasti nei documenti legali.
