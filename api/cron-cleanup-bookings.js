@@ -1,4 +1,4 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
 
 /**
  * Vercel Cron Job — eliminazione automatica prenotazioni vecchie.

@@ -1,5 +1,5 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { requireAdmin } from './lib/requireAdmin.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { requireAdmin } from './_lib/requireAdmin.js';
 
 // Aggiunge 1 giorno a una stringa YYYY-MM-DD (per la fine esclusiva GCal sugli all-day)
 function addOneDay(dateStr) {

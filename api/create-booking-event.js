@@ -1,8 +1,8 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { computeSlotsForDate } from './lib/availability.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { computeSlotsForDate } from './_lib/availability.js';
 import nodemailer from 'nodemailer';
-import { customerConfirmationEmail } from './emailTemplates/customerConfirmation.js';
-import { adminNotificationEmail } from './emailTemplates/adminNotification.js';
+import { customerConfirmationEmail } from './_emailTemplates/customerConfirmation.js';
+import { adminNotificationEmail } from './_emailTemplates/adminNotification.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

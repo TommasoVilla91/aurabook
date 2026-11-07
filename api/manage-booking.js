@@ -1,5 +1,5 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { requireAdmin } from './lib/requireAdmin.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { requireAdmin } from './_lib/requireAdmin.js';
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 

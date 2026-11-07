@@ -1,5 +1,5 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { computeSlotsForDate, eventsForDate } from './lib/availability.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { computeSlotsForDate, eventsForDate } from './_lib/availability.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DATES = 62;

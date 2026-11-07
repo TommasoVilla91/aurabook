@@ -63,7 +63,7 @@ Ogni **3–6 mesi** è buona pratica ruotare:
 Questi valori sono scritti direttamente nei file sorgente e vanno modificati **una volta sola**
 prima del deploy definitivo.
 
-### `api/emailTemplates/customerConfirmation.js`
+### `api/_emailTemplates/customerConfirmation.js`
 
 File che gestisce il template della mail automatica al cliente.
 

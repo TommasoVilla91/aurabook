@@ -1,5 +1,5 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { requireAdmin } from './lib/requireAdmin.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { requireAdmin } from './_lib/requireAdmin.js';
 
 /**
  * Parsa la descrizione dell'evento calendario per estrarre i campi strutturati.

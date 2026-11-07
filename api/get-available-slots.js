@@ -1,5 +1,5 @@
-import { getAuthorizedCalendar } from './lib/googleAuth.js';
-import { computeSlotsForDate } from './lib/availability.js';
+import { getAuthorizedCalendar } from './_lib/googleAuth.js';
+import { computeSlotsForDate } from './_lib/availability.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
